@@ -1,0 +1,4 @@
+{
+  "dept_id": {"S": "finance"},
+  "risk_id": {"S": "RISK-001"}
+}

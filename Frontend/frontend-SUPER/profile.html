@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile - MSWG Risk Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<div class="shell">
+  <div class="sidebar" id="sidebarMount"></div>
+  <div class="main" style="max-width: 600px;">
+    <div class="profile-page-card">
+      <div class="profile-row">
+        <div class="label">Full name</div>
+        <div class="value" id="pName"></div>
+      </div>
+      <div class="profile-row">
+        <div class="label">Department</div>
+        <div class="value" id="pDept"></div>
+      </div>
+      <div class="profile-row">
+        <div class="label">Head of department</div>
+        <div class="value" id="pHead"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.CURRENT_PAGE = "profile.html";
+</script>
+<script src="role-config.js"></script>
+<script src="common.js"></script>
+<script src="sidebar.js"></script>
+<script>
+document.getElementById("pName").textContent = window.USER_NAME;
+document.getElementById("pDept").textContent = window.DEPT_LABEL;
+
+let headText;
+if (window.USER_NAME === "Dr Ismet Yusoff") {
+  headText = "None (CEO)";
+} else if (window.IS_DEPT_HEAD === true) {
+  headText = "Dr Ismet Yusoff (CEO)";
+} else {
+  headText = DEPT_HEADS[window.DEPT_LABEL] || "Not yet assigned";
+}
+document.getElementById("pHead").textContent = headText;
+</script>
+</body>
+</html>

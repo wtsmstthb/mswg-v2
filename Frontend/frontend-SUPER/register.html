@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register a risk - MSWG Risk Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<div class="shell">
+  <div class="sidebar" id="sidebarMount"></div>
+  <div class="main" style="max-width: 780px;">
+    <header>
+      <div>
+        <div class="eyebrow">MSWG - Enterprise Risk Management</div>
+        <h1 id="greeting">Good afternoon</h1>
+        <div class="subtitle">Register a new risk</div>
+      </div>
+    </header>
+
+    <div class="panel">
+      <form id="riskForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="fQuarter">Quarter</label>
+            <input type="text" id="fQuarter" placeholder="e.g. Q3" required>
+          </div>
+          <div class="form-group">
+            <label for="fElement">Risk element</label>
+            <input type="text" id="fElement" placeholder="e.g. Compliance" required>
+          </div>
+
+          <div class="form-group full">
+            <label for="fStatement">Risk statement</label>
+            <textarea id="fStatement" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="fInherentImpact">Inherent impact</label>
+            <select id="fInherentImpact">
+              <option>Low</option><option>Medium Low</option><option>Medium High</option><option>High</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fInherentLikelihood">Inherent likelihood</label>
+            <select id="fInherentLikelihood">
+              <option>Low</option><option>Medium Low</option><option>Medium High</option><option>High</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <div class="rating-preview">Inherent rating (auto): <span class="badge" id="inherentPreview">Low</span></div>
+          </div>
+
+          <div class="form-group full">
+            <label for="fControlMethods">Control methods (one per line)</label>
+            <textarea id="fControlMethods"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="fRootCause">Addressed root cause</label>
+            <select id="fRootCause"><option>Yes</option><option>Partially</option><option>No</option></select>
+          </div>
+          <div class="form-group">
+            <label for="fDocumented">Control documented</label>
+            <select id="fDocumented"><option>Yes</option><option>Partially</option><option>No</option></select>
+          </div>
+          <div class="form-group">
+            <label for="fConsistent">Applied consistently</label>
+            <select id="fConsistent"><option>Yes</option><option>Partially</option><option>No</option></select>
+          </div>
+          <div class="form-group">
+            <label for="fEffectiveness">Control effectiveness</label>
+            <select id="fEffectiveness"><option>Effective</option><option>Partially Effective</option><option>Not Effective</option></select>
+          </div>
+
+          <div class="form-group">
+            <label for="fTrend">Risk trend</label>
+            <select id="fTrend"><option>Increasing</option><option>Stable</option><option>Decreasing</option></select>
+          </div>
+          <div class="form-group"></div>
+
+          <div class="form-group">
+            <label for="fResidualImpact">Residual impact</label>
+            <select id="fResidualImpact">
+              <option>Low</option><option>Medium Low</option><option>Medium High</option><option>High</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fResidualLikelihood">Residual likelihood</label>
+            <select id="fResidualLikelihood">
+              <option>Low</option><option>Medium Low</option><option>Medium High</option><option>High</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <div class="rating-preview">Residual rating (auto): <span class="badge" id="residualPreview">Low</span></div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <a href="dashboard.html" class="btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center;">Cancel</a>
+          <button type="submit" class="btn-primary">Register risk</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.CURRENT_PAGE = "register.html";
+</script>
+<script src="role-config.js"></script>
+<script src="common.js"></script>
+<script src="sidebar.js"></script>
+<script>
+function updateRatingPreviews(){
+  const iImpact = document.getElementById("fInherentImpact").value;
+  const iLikelihood = document.getElementById("fInherentLikelihood").value;
+  const rImpact = document.getElementById("fResidualImpact").value;
+  const rLikelihood = document.getElementById("fResidualLikelihood").value;
+
+  const inherentRating = computeRating(iImpact, iLikelihood);
+  const residualRating = computeRating(rImpact, rLikelihood);
+
+  const inherentBadge = document.getElementById("inherentPreview");
+  inherentBadge.textContent = inherentRating;
+  inherentBadge.className = `badge ${ratingClass(inherentRating)}`;
+
+  const residualBadge = document.getElementById("residualPreview");
+  residualBadge.textContent = residualRating;
+  residualBadge.className = `badge ${ratingClass(residualRating)}`;
+}
+
+["fInherentImpact", "fInherentLikelihood", "fResidualImpact", "fResidualLikelihood"].forEach(id => {
+  document.getElementById(id).addEventListener("change", updateRatingPreviews);
+});
+
+document.getElementById("riskForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const inherentImpact = document.getElementById("fInherentImpact").value;
+  const inherentLikelihood = document.getElementById("fInherentLikelihood").value;
+  const residualImpact = document.getElementById("fResidualImpact").value;
+  const residualLikelihood = document.getElementById("fResidualLikelihood").value;
+
+  const newRisk = {
+    no: nextRiskNo(),
+    quarter: document.getElementById("fQuarter").value.trim(),
+    element: document.getElementById("fElement").value.trim(),
+    statement: document.getElementById("fStatement").value.trim(),
+    inherentImpact, inherentLikelihood,
+    inherentRating: computeRating(inherentImpact, inherentLikelihood),
+    controlMethods: document.getElementById("fControlMethods").value.trim(),
+    addressedRootCause: document.getElementById("fRootCause").value,
+    controlDocumented: document.getElementById("fDocumented").value,
+    appliedConsistently: document.getElementById("fConsistent").value,
+    controlEffectiveness: document.getElementById("fEffectiveness").value,
+    riskTrend: document.getElementById("fTrend").value,
+    residualImpact, residualLikelihood,
+    residualRating: computeRating(residualImpact, residualLikelihood),
+    status: "active"
+  };
+
+  addRisk(newRisk);
+  window.location.href = "dashboard.html";
+});
+
+updateRatingPreviews();
+</script>
+</body>
+</html>

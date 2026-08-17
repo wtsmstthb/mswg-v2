@@ -1,0 +1,7 @@
+{
+  "dept_id": {"S": "finance"},
+  "risk_id": {"S": "RISK-001"},
+  "title": {"S": "Late quarterly reporting"},
+  "quarter": {"S": "Q3-2026"},
+  "residual_rating": {"S": "Medium High"}
+}
