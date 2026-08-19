@@ -7,5 +7,3 @@ async function run() {
 }
 
 run();
-
-

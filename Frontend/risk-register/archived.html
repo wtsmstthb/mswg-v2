@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archived risks - MSWG Risk Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<div class="shell">
+  <div class="sidebar" id="sidebarMount"></div>
+  <div class="main">
+    <header>
+      <div>
+        <div class="eyebrow">MSWG - Enterprise Risk Management</div>
+        <h1>Archived risk records</h1>
+        <div class="subtitle">Archived risks, visible only to full-visibility viewers</div>
+      </div>
+
+    </header>
+<div class="filters" style="margin-bottom:14px;">
+  <select id="filterElement"><option value="">All risk elements</option></select>
+  <select id="filterRating"><option value="">All residual ratings</option></select>
+  <input type="text" id="searchBox" placeholder="Search risk statement...">
+</div>
+
+    <div class="panel">
+      <h2>Archive a risk</h2>
+      <p style="font-size:12px; color:var(--text-dim); margin-bottom:12px;">
+        In production, archiving is permission-gated server-side to the 3 named viewers and never
+        deletes data, matching archiveRisk.js. Here, enter a risk number from the dashboard to
+        archive it locally and see it move into the list below.
+      </p>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input type="text" id="archiveInput" placeholder="Risk no., e.g. 3" style="max-width:160px;">
+        <button class="btn-primary" id="archiveBtn">Archive risk</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:20px;">
+      <h2>Archived risks</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>No.</th><th>Element</th><th>Statement</th><th>Residual rating</th></tr></thead>
+          <tbody id="archivedBody"></tbody>
+        </table>
+        <div class="empty" id="emptyState" style="display:none;">No archived risks yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>window.CURRENT_PAGE = "archived.html";</script>
+<script src="config.js"></script>
+<script src="role-config.js"></script>
+<script src="api-client.js"></script>
+<script src="common.js"></script>
+<script src="sidebar.js"></script>
+<script>
+function populateFilters(){
+  const all = getOrganizationData().filter(d => d.status === "archived");
+  const elements = [...new Set(all.map(d => d.element))];
+  const ratings = [...new Set(all.map(d => d.residualRating))];
+
+  const eSel = document.getElementById("filterElement");
+  const rSel = document.getElementById("filterRating");
+  const currentE = eSel.value, currentR = rSel.value;
+
+  eSel.innerHTML = '<option value="">All risk elements</option>';
+  elements.forEach(e => eSel.insertAdjacentHTML("beforeend", `<option value="${e}">${e}</option>`));
+
+  rSel.innerHTML = '<option value="">All residual ratings</option>';
+  ratings.forEach(r => rSel.insertAdjacentHTML("beforeend", `<option value="${r}">${r}</option>`));
+
+  if (elements.includes(currentE)) eSel.value = currentE;
+  if (ratings.includes(currentR)) rSel.value = currentR;
+}
+
+function getFiltered(){
+  const e = document.getElementById("filterElement").value;
+  const r = document.getElementById("filterRating").value;
+  const s = document.getElementById("searchBox").value.toLowerCase();
+  return getOrganizationData().filter(d =>
+    d.status === "archived" &&
+    (!e || d.element === e) &&
+    (!r || d.residualRating === r) &&
+    (!s || d.statement.toLowerCase().includes(s))
+  );
+}
+
+function renderArchived(){
+  const rows = getFiltered();
+  const body = document.getElementById("archivedBody");
+  const empty = document.getElementById("emptyState");
+
+  if (!rows.length){
+    body.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  body.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.no}</td>
+      <td>${r.element}</td>
+      <td style="max-width:400px;">${r.statement}</td>
+      <td><span class="badge ${ratingClass(r.residualRating)}">${r.residualRating}</span></td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("filterElement").addEventListener("change", renderArchived);
+document.getElementById("filterRating").addEventListener("change", renderArchived);
+document.getElementById("searchBox").addEventListener("input", renderArchived);
+
+document.getElementById("archiveBtn").addEventListener("click", () => {
+  const riskNumber = Number.parseInt(document.getElementById("archiveInput").value, 10);
+  if (!Number.isInteger(riskNumber)) {
+    alert("Enter a valid risk number.");
+    return;
+  }
+  if (!archiveRisk(riskNumber)) {
+    alert("Risk not found or you do not have archive permission.");
+    return;
+  }
+  document.getElementById("archiveInput").value = "";
+  populateFilters();
+  renderArchived();
+});
+
+populateFilters();
+renderArchived();
+</script>
+</body>
+</html>

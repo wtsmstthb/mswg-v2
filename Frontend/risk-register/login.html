@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in - MSWG Platform Portal</title>
+  <link rel="stylesheet" href="shell.css">
+</head>
+<body>
+  <main class="access-message">
+    <div class="profile-page-card">
+      <div class="eyebrow">MSWG Internal Systems</div>
+      <h1>Sign in</h1>
+      <p class="subtitle">Use your company-managed MSWG account to access your assigned platforms. The portal never stores your password.</p>
+      <p style="margin-top:18px;"><button class="btn-primary" id="signInBtn">Continue to secure sign-in</button></p>
+      <p class="subtitle" id="loginError" style="margin-top:14px;color:var(--high);"></p>
+    </div>
+  </main>
+  <script src="config.js"></script>
+  <script>
+    function base64Url(bytes){
+      return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+
+    document.getElementById("signInBtn").addEventListener("click", async () => {
+      const config = window.APP_CONFIG.cognito;
+      if (!config.hostedUiDomain || !config.clientId || !config.redirectUri) {
+        document.getElementById("loginError").textContent = "Cognito sign-in is not configured for this environment.";
+        return;
+      }
+
+      const verifierBytes = crypto.getRandomValues(new Uint8Array(64));
+      const verifier = base64Url(verifierBytes);
+      const challenge = base64Url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))));
+      const state = base64Url(crypto.getRandomValues(new Uint8Array(24)));
+      sessionStorage.setItem("mswg_rr_pkce_verifier", verifier);
+      sessionStorage.setItem("mswg_rr_oauth_state", state);
+
+      const url = new URL("/oauth2/authorize", config.hostedUiDomain);
+      url.searchParams.set("response_type", "code");
+      url.searchParams.set("client_id", config.clientId);
+      url.searchParams.set("redirect_uri", config.redirectUri);
+      url.searchParams.set("scope", "openid email profile");
+      url.searchParams.set("code_challenge_method", "S256");
+      url.searchParams.set("code_challenge", challenge);
+      url.searchParams.set("state", state);
+      window.location.assign(url.toString());
+    });
+  </script>
+</body>
+</html>

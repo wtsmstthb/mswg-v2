@@ -1,0 +1,11 @@
+{
+  "name": "mswg-rr-lambdas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1102.0",
+    "@aws-sdk/lib-dynamodb": "^3.1102.0"
+  }
+}
+

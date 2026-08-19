@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Org overview - MSWG Risk Register</title>
+<title>Overview - MSWG Risk Register</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -16,7 +16,7 @@
     <header>
       <div>
         <div class="eyebrow">MSWG - Enterprise Risk Management</div>
-        <h1 id="greeting">Good afternoon</h1>
+        <h1>Organisation risk overview</h1>
         <div class="subtitle">Org-wide risk overview, visible only to full-visibility viewers</div>
       </div>
       <div class="filters">
@@ -36,21 +36,20 @@
 
     <div class="grid-main">
       <div class="panel">
-        <h2>Risks by element</h2>
+        <h2>Risks by department</h2>
         <div style="overflow-x:auto;">
           <table>
-            <thead><tr><th>Risk element</th><th>Count</th><th>Highest residual rating</th></tr></thead>
+            <thead><tr><th>Department</th><th>Count</th><th>Highest residual rating</th></tr></thead>
             <tbody id="elementBody"></tbody>
           </table>
         </div>
         <p style="font-size:12px; color:var(--text-dim); margin-top:12px;">
-          Grouped by risk element, since department-level data (dept_id) will only exist once
-          Cognito and the real risk register API are connected. This view will switch to
-          department grouping at that point.
+          The local prototype uses seeded department IDs. Production values come from the authenticated API.
         </p>
       </div>
       <div class="panel">
         <h2>Residual rating distribution</h2>
+        <p class="chart-note"><strong>Interactive:</strong> click a segment to filter the full register by rating.</p>
         <canvas id="ratingChart"></canvas>
       </div>
     </div>
@@ -70,7 +69,9 @@
 <script>
   window.CURRENT_PAGE = "org-overview.html";
 </script>
+<script src="config.js"></script>
 <script src="role-config.js"></script>
+<script src="api-client.js"></script>
 <script src="common.js"></script>
 <script src="sidebar.js"></script>
 <script>
@@ -85,14 +86,14 @@ function renderStats(rows){
 function renderElementTable(rows){
   const groups = {};
   rows.forEach(r => {
-    if (!groups[r.element]) groups[r.element] = [];
-    groups[r.element].push(r);
+    if (!groups[r.deptId]) groups[r.deptId] = [];
+    groups[r.deptId].push(r);
   });
   const body = document.getElementById("elementBody");
-  body.innerHTML = Object.entries(groups).map(([element, items]) => {
+  body.innerHTML = Object.entries(groups).map(([departmentId, items]) => {
     const worst = items.reduce((a, b) => RATING_SCORE[a.residualRating] >= RATING_SCORE[b.residualRating] ? a : b);
     return `<tr>
-      <td>${element}</td>
+      <td>${window.DEPARTMENT_LABELS[departmentId] || departmentId}</td>
       <td>${items.length}</td>
       <td><span class="badge ${ratingClass(worst.residualRating)}">${worst.residualRating}</span></td>
     </tr>`;
@@ -112,19 +113,28 @@ function renderChart(rows){
       labels: ["High", "Medium High", "Medium Low", "Low"],
       datasets: [{
         data: [counts["High"], counts["Medium High"], counts["Medium Low"], counts["Low"]],
-        backgroundColor: ["#dc2626", "#ea580c", "#ca8a04", "#16a34a"],
+          backgroundColor: ["#EE5D50", "#F9825A", "#FFB547", "#01B574"],
         borderColor: "#ffffff",
         borderWidth: 3
       }]
     },
     options: {
       responsive: true,
-      plugins: { legend: { position: "bottom", labels: { color: "#1c2536", font: { family: "Inter", size: 12 } } } },
+      onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? "pointer" : "default"; },
+      onClick: (event, elements) => {
+        if (!elements.length) return;
+        const rating = ["High", "Medium High", "Medium Low", "Low"][elements[0].index];
+        document.getElementById("filterRating").value = rating;
+        renderAll();
+      },
+      plugins: {
+        legend: { position: "bottom", labels: { color: "#707eae", usePointStyle: true, boxWidth: 8, font: { family: "DM Sans", size: 10 } } },
+        tooltip: { callbacks: { label: context => ` ${context.label}: ${context.raw} risk${context.raw === 1 ? "" : "s"}` } }
+      },
       cutout: "62%"
     }
   });
 }
-
 
 function renderTable(rows){
   document.getElementById("tableBody").innerHTML = rows.map(r => `
@@ -141,12 +151,22 @@ function getFiltered(){
   const e = document.getElementById("filterElement").value;
   const r = document.getElementById("filterRating").value;
   const s = document.getElementById("searchBox").value.toLowerCase();
-  return getAllData().filter(d =>
+  return getOrganizationData().filter(d =>
     d.status !== "archived" &&
     (!e || d.element === e) &&
     (!r || d.residualRating === r) &&
     (!s || d.statement.toLowerCase().includes(s))
   );
+}
+
+function populateFilters(){
+  const active = getOrganizationData().filter(d => d.status !== "archived");
+  const elements = [...new Set(active.map(d => d.element))].sort();
+  const ratings = [...new Set(active.map(d => d.residualRating))];
+  const elementSelect = document.getElementById("filterElement");
+  const ratingSelect = document.getElementById("filterRating");
+  elements.forEach(element => elementSelect.insertAdjacentHTML("beforeend", `<option value="${element}">${element}</option>`));
+  ratings.forEach(rating => ratingSelect.insertAdjacentHTML("beforeend", `<option value="${rating}">${rating}</option>`));
 }
 
 function renderAll(){

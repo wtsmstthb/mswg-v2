@@ -16,7 +16,7 @@
     <header>
       <div>
         <div class="eyebrow">MSWG - Enterprise Risk Management</div>
-        <h1 id="greeting">Good afternoon</h1>
+        <h1>Risk intelligence dashboard</h1>
         <div class="subtitle">Live view of inherent and residual risk across the register</div>
       </div>
       <div class="filters">
@@ -55,6 +55,7 @@
 
       <div class="panel">
         <h2>Residual rating distribution</h2>
+        <p class="chart-note"><strong>Interactive:</strong> click a segment to filter the register by rating.</p>
         <canvas id="ratingChart"></canvas>
       </div>
     </div>
@@ -180,7 +181,9 @@
 <script>
   window.CURRENT_PAGE = "dashboard.html";
 </script>
+<script src="config.js"></script>
 <script src="role-config.js"></script>
+<script src="api-client.js"></script>
 <script src="common.js"></script>
 <script src="sidebar.js"></script>
 <script>
@@ -262,15 +265,23 @@ function renderChart(rows){
       labels: ["High", "Medium High", "Medium Low", "Low"],
       datasets: [{
         data: [counts["High"], counts["Medium High"], counts["Medium Low"], counts["Low"]],
-        backgroundColor: ["#dc2626", "#ea580c", "#ca8a04", "#16a34a"],
+          backgroundColor: ["#EE5D50", "#F9825A", "#FFB547", "#01B574"],
         borderColor: "#ffffff",
         borderWidth: 3
       }]
     },
     options: {
       responsive: true,
+      onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? "pointer" : "default"; },
+      onClick: (event, elements) => {
+        if (!elements.length) return;
+        const rating = ["High", "Medium High", "Medium Low", "Low"][elements[0].index];
+        document.getElementById("filterRating").value = rating;
+        renderAll();
+      },
       plugins: {
-        legend: { position: "bottom", labels: { color: "#1c2536", font: { family: "Inter", size: 12 } } }
+        legend: { position: "bottom", labels: { color: "#707eae", usePointStyle: true, boxWidth: 8, font: { family: "DM Sans", size: 10 } } },
+        tooltip: { callbacks: { label: context => ` ${context.label}: ${context.raw} risk${context.raw === 1 ? "" : "s"}` } }
       },
       cutout: "62%"
     }

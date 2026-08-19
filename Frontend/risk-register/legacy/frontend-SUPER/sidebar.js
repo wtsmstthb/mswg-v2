@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { href: "history.html", label: "Risk history" }
 ];
 const EXEC_NAV_ITEMS = [
-  { href: "org-overview.html", label: "Org overview" },
+  { href: "org-overview.html", label: "Overview" },
   { href: "archived.html", label: "Archived" }
 ];
 
@@ -77,7 +77,6 @@ function renderTopbar(){
     <div>
       <div class="topbar-eyebrow">MSWG - Enterprise Risk Management</div>
       <div class="topbar-greeting" id="topbarGreeting">Good afternoon, ${name}</div>
-      <div class="topbar-subtitle">Live view of inherent and residual risk across the register</div>
     </div>
     <div class="profile-wrap">
       <button class="profile-btn" id="profileBtn">${initial}</button>

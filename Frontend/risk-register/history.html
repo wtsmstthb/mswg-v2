@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk history - MSWG Risk Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<div class="shell">
+  <div class="sidebar" id="sidebarMount"></div>
+  <div class="main">
+    <header>
+      <div>
+        <div class="eyebrow">MSWG - Enterprise Risk Management</div>
+        <h1>Risk movement history</h1>
+        <div class="subtitle">Trend and control effectiveness across the register</div>
+      </div>
+      <div class="filters">
+  <select id="filterElement"><option value="">All risk elements</option></select>
+  <select id="filterTrend">
+    <option value="">All trends</option>
+    <option>Increasing</option>
+    <option>Stable</option>
+    <option>Decreasing</option>
+  </select>
+  <input type="text" id="searchBox" placeholder="Search risk statement...">
+</div>
+    </header>
+
+    <div class="panel">
+      <h2>Risk trend overview</h2>
+      <p style="font-size:12px; color:var(--text-dim); margin-bottom:16px;">
+        This shows the current trend recorded on each risk. Rating-change-over-time tracking
+        (quarter to quarter, year to year) requires the backend history table and is not yet
+        connected in this prototype.
+      </p>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>No.</th><th>Element</th><th>Quarter</th><th>Trend</th><th>Effectiveness</th><th>Residual rating</th></tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.CURRENT_PAGE = "history.html";
+</script>
+<script src="config.js"></script>
+<script src="role-config.js"></script>
+<script src="api-client.js"></script>
+<script src="common.js"></script>
+<script src="sidebar.js"></script>
+<script>
+function populateFilters(){
+  const all = getAllData().filter(d => d.status !== "archived");
+  const elements = [...new Set(all.map(d => d.element))];
+
+  const eSel = document.getElementById("filterElement");
+  const currentE = eSel.value;
+  eSel.innerHTML = '<option value="">All risk elements</option>';
+  elements.forEach(e => eSel.insertAdjacentHTML("beforeend", `<option value="${e}">${e}</option>`));
+  if (elements.includes(currentE)) eSel.value = currentE;
+}
+
+function getFiltered(){
+  const e = document.getElementById("filterElement").value;
+  const t = document.getElementById("filterTrend").value;
+  const s = document.getElementById("searchBox").value.toLowerCase();
+  return getAllData().filter(d =>
+    d.status !== "archived" &&
+    (!e || d.element === e) &&
+    (!t || d.riskTrend === t) &&
+    (!s || d.statement.toLowerCase().includes(s))
+  );
+}
+
+function renderHistory(){
+  const body = document.getElementById("historyBody");
+  const rows = getFiltered();
+  body.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.no}</td>
+      <td>${r.element}</td>
+      <td>${r.quarter}</td>
+      <td class="trend ${trendClass(r.riskTrend)}">${trendArrow(r.riskTrend)}</td>
+      <td>${r.controlEffectiveness}</td>
+      <td><span class="badge ${ratingClass(r.residualRating)}">${r.residualRating}</span></td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("filterElement").addEventListener("change", renderHistory);
+document.getElementById("filterTrend").addEventListener("change", renderHistory);
+document.getElementById("searchBox").addEventListener("input", renderHistory);
+
+populateFilters();
+renderHistory();
+</script>
+</body>
+</html>
