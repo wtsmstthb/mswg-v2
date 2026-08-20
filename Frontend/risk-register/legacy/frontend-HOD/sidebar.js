@@ -1,57 +1,22 @@
-// sidebar.js
-// Renders the sidebar into #sidebarMount on every page and marks the
-// current page's nav link active. Also drives the time-aware,
-// language-cycling greeting used in each page's header.
+"use strict";
 
 const NAV_ITEMS = [
-  { href: "dashboard.html", label: "Dashboard" },
-  { href: "register.html", label: "Register risk" },
-  { href: "history.html", label: "Risk history" }
-];
-const EXEC_NAV_ITEMS = [
-  { href: "org-overview.html", label: "Org overview" },
-  { href: "archived.html", label: "Archived" }
+  { href: "dashboard.html", label: "Dashboard", icon: "⌂" },
+  { href: "register.html", label: "Register risk", icon: "+" },
+  { href: "history.html", label: "Risk history", icon: "↗" }
 ];
 
-// Set on each page before this script runs, e.g. window.CURRENT_PAGE = "dashboard.html"
-// Set window.IS_VIEWER = true on pages meant for the 3 full-visibility viewers,
-// this only controls sidebar visibility in this prototype, not real access,
-// real enforcement happens server-side once Cognito and API Gateway are wired in.
+const OTHER_PLATFORM_ITEMS = [
+  { href: "../../../pre-voting/", label: "Pre-Voting", icon: "◎", available: false },
+  { href: "../../../agm-conduct/landingpage.html", label: "AGM", icon: "✓", available: true }
+];
 
-function renderSidebar(){
-  const mount = document.getElementById("sidebarMount");
-  if (!mount) return;
-
-  const current = window.CURRENT_PAGE || "";
-  const deptLabel = window.DEPT_LABEL || "Corporate resources";
-  const isViewer = window.IS_VIEWER === true;
-
-  const navLinks = NAV_ITEMS.map(item =>
-    `<a href="${item.href}" class="${item.href === current ? "active" : ""}"><span>${item.label}</span></a>`
-  ).join("");
-
-  const execLinks = isViewer
-    ? `<div class="nav-section-label">All departments</div>` +
-      EXEC_NAV_ITEMS.map(item =>
-        `<a href="${item.href}" class="${item.href === current ? "active" : ""}"><span>${item.label}</span></a>`
-      ).join("")
-    : "";
-
-  mount.innerHTML = `
-    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Collapse sidebar">&#9776;</button>
-    <span class="dept-badge">${deptLabel}</span>
-    <nav>${navLinks}${execLinks}</nav>
-  `;
-
-  const toggleBtn = document.getElementById("sidebarToggle");
-  const collapsed = localStorage.getItem("mswg_rr_sidebar_collapsed") === "true";
-  if (collapsed) mount.classList.add("collapsed");
-
-  toggleBtn.addEventListener("click", () => {
-    mount.classList.toggle("collapsed");
-    localStorage.setItem("mswg_rr_sidebar_collapsed", mount.classList.contains("collapsed"));
-  });
-}
+const PAGE_LABELS = {
+  "dashboard.html": "Dashboard",
+  "register.html": "Register risk",
+  "history.html": "Risk history",
+  "profile.html": "Profile"
+};
 
 const DEPT_HEADS = {
   "CEO office": null,
@@ -64,79 +29,107 @@ const DEPT_HEADS = {
   "Professional development": "Iman Lai"
 };
 
+function renderSidebar(){
+  const mount = document.getElementById("sidebarMount");
+  if (!mount) return;
+
+  const current = window.CURRENT_PAGE || "";
+  const name = window.USER_NAME || "User";
+  const department = window.DEPT_LABEL || "Department";
+  const initial = name.charAt(0).toUpperCase();
+  const renderLinks = items => items.map(item =>
+    `<a href="${item.href}" class="${item.href === current ? "active" : ""}"><span class="nav-icon" aria-hidden="true">${item.icon}</span><span class="nav-text">${item.label}</span></a>`
+  ).join("");
+  const platformLinks = OTHER_PLATFORM_ITEMS.map(item => item.available
+    ? `<a href="${item.href}"><span class="nav-icon" aria-hidden="true">${item.icon}</span><span class="nav-text">${item.label}</span></a>`
+    : `<span class="platform-nav-item is-disabled" aria-disabled="true" title="This platform is not available yet"><span class="nav-icon" aria-hidden="true">${item.icon}</span><span class="nav-text">${item.label}</span><span class="platform-state">Soon</span></span>`
+  ).join("");
+
+  mount.innerHTML = `
+    <div class="sidebar-brand">
+      <span class="sidebar-brand-mark">M</span>
+      <span class="sidebar-brand-copy"><strong>MSWG</strong><small>Risk Register</small></span>
+    </div>
+    <div class="sidebar-tools">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Collapse sidebar" title="Collapse sidebar"><span aria-hidden="true">☰</span><span class="toggle-label">Collapse menu</span></button>
+      <span class="dept-badge" title="${department}">${department}</span>
+    </div>
+    <nav>
+      <div class="nav-section-label nav-section-first">Workspace</div>
+      <a href="../../../portal/index.html"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-text">Portal home</span></a>
+      ${renderLinks(NAV_ITEMS)}
+      <div class="nav-section-label">Other platforms</div>
+      ${platformLinks}
+    </nav>
+    <div class="sidebar-user-card" title="${name} · Head of Department">
+      <span class="sidebar-user-avatar" aria-hidden="true">${initial}</span>
+      <span class="sidebar-user-copy"><strong>${name}</strong><small>Head of Department</small></span>
+    </div>
+  `;
+
+  const collapsed = localStorage.getItem("mswg_rr_hod_sidebar_collapsed") === "true";
+  if (collapsed) mount.classList.add("collapsed");
+  const toggle = document.getElementById("sidebarToggle");
+  toggle.addEventListener("click", () => {
+    mount.classList.toggle("collapsed");
+    const isCollapsed = mount.classList.contains("collapsed");
+    localStorage.setItem("mswg_rr_hod_sidebar_collapsed", String(isCollapsed));
+    toggle.setAttribute("aria-label", isCollapsed ? "Expand sidebar" : "Collapse sidebar");
+    toggle.setAttribute("title", isCollapsed ? "Expand sidebar" : "Collapse sidebar");
+  });
+}
+
 function renderTopbar(){
   if (document.getElementById("topbar")) return;
 
   const name = window.USER_NAME || "User";
+  const department = window.DEPT_LABEL || "Department";
+  const pageLabel = PAGE_LABELS[window.CURRENT_PAGE] || "Risk workspace";
   const initial = name.charAt(0).toUpperCase();
-
   const topbar = document.createElement("div");
   topbar.className = "topbar";
   topbar.id = "topbar";
   topbar.innerHTML = `
     <div>
-      <div class="topbar-eyebrow">MSWG - Enterprise Risk Management</div>
-      <div class="topbar-greeting" id="topbarGreeting">Good afternoon, ${name}</div>
+      <div class="topbar-eyebrow">MSWG / Risk Register</div>
+      <div class="topbar-greeting">${department}</div>
+      <div class="topbar-subtitle">${pageLabel} · Head of Department access</div>
     </div>
     <div class="profile-wrap">
-      <button class="profile-btn" id="profileBtn">${initial}</button>
+      <button class="profile-btn" id="profileBtn" aria-label="Open profile menu">${initial}</button>
       <div class="profile-dropdown" id="profileDropdown">
         <a href="profile.html">View profile</a>
         <button id="signOutBtn">Sign out</button>
       </div>
     </div>
   `;
-  document.body.insertBefore(topbar, document.body.firstChild);
 
-  const btn = document.getElementById("profileBtn");
+  const main = document.querySelector(".shell > .main");
+  if (main) {
+    const pageContent = document.createElement("div");
+    pageContent.className = "page-content";
+    const constrainedWidth = main.style.maxWidth;
+    if (constrainedWidth) {
+      pageContent.style.maxWidth = constrainedWidth;
+      main.style.maxWidth = "";
+    }
+    while (main.firstChild) pageContent.appendChild(main.firstChild);
+    main.appendChild(topbar);
+    main.appendChild(pageContent);
+  }
+
   const dropdown = document.getElementById("profileDropdown");
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
+  document.getElementById("profileBtn").addEventListener("click", event => {
+    event.stopPropagation();
     dropdown.classList.toggle("open");
   });
   document.addEventListener("click", () => dropdown.classList.remove("open"));
-
   document.getElementById("signOutBtn").addEventListener("click", () => {
     alert("Signed out (placeholder, real sign-out arrives with Cognito).");
   });
 }
 
-const GREETINGS = {
-  en: ["Good morning", "Good afternoon", "Good evening"],
-  ms: ["Selamat pagi", "Selamat tengah hari", "Selamat petang"],
-  zh: ["早上好", "下午好", "晚上好"],
-  ta: ["காலை வணக்கம்", "மதிய வணக்கம்", "மாலை வணக்கம்"]
-};
-const LANG_ORDER = ["en", "ms", "zh", "ta"];
-let langIndex = 0;
-
-function periodIndex(){
-  const hour = new Date().getHours();
-  if (hour < 12) return 0;
-  if (hour < 18) return 1;
-  return 2;
-}
-
-function updateGreeting(){
-  const name = window.USER_NAME || "there";
-  const lang = LANG_ORDER[langIndex];
-  const phrase = GREETINGS[lang][periodIndex()];
-  const text = `${phrase}, ${name}`;
-
-  const el = document.getElementById("greeting");
-  if (el) el.textContent = text;
-
-  const topbarEl = document.getElementById("topbarGreeting");
-  if (topbarEl) topbarEl.textContent = text;
-
-  langIndex = (langIndex + 1) % LANG_ORDER.length;
-}
-
-function initSidebarAndGreeting(){
+document.addEventListener("DOMContentLoaded", () => {
   renderTopbar();
   renderSidebar();
-  updateGreeting();
-  setInterval(updateGreeting, 120000);
-}
-
-document.addEventListener("DOMContentLoaded", initSidebarAndGreeting);
+});

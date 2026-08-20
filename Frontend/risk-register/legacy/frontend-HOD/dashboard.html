@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="../../shell.css">
 </head>
 <body>
 <div class="shell">
@@ -16,8 +16,8 @@
     <header>
       <div>
         <div class="eyebrow">MSWG - Enterprise Risk Management</div>
-        <h1 id="greeting">Good afternoon</h1>
-        <div class="subtitle">Live view of inherent and  risk across the register</div>
+        <h1>Risk intelligence dashboard</h1>
+        <div class="subtitle">Live view of inherent and residual risk across your department</div>
       </div>
       <div class="filters">
         <select id="filterQuarter"><option value="">All quarters</option></select>
@@ -262,7 +262,7 @@ function renderChart(rows){
       labels: ["High", "Medium High", "Medium Low", "Low"],
       datasets: [{
         data: [counts["High"], counts["Medium High"], counts["Medium Low"], counts["Low"]],
-        backgroundColor: ["#dc2626", "#ea580c", "#ca8a04", "#16a34a"],
+        backgroundColor: ["#EE5D50", "#F9825A", "#FFB547", "#01B574"],
         borderColor: "#ffffff",
         borderWidth: 3
       }]
@@ -270,7 +270,7 @@ function renderChart(rows){
     options: {
       responsive: true,
       plugins: {
-        legend: { position: "bottom", labels: { color: "#1c2536", font: { family: "Inter", size: 12 } } }
+        legend: { position: "bottom", labels: { color: "#707eae", usePointStyle: true, boxWidth: 8, font: { family: "DM Sans", size: 10 } } }
       },
       cutout: "62%"
     }
