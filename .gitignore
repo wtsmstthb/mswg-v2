@@ -4,3 +4,5 @@
 cdk.out/
 desktop.ini
 dynamodb-data/
+__pycache__/
+*.pyc

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MSWG Pre-Voting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="prevoting.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Platform navigation">
+      <a class="sidebar-brand" href="../portal/index.html">
+        <span class="sidebar-brand-mark">M</span>
+        <span class="sidebar-brand-copy"><strong>MSWG</strong><small>Internal Platform</small></span>
+      </a>
+
+      <nav>
+        <div class="nav-section-label">Workspace</div>
+        <a href="../portal/index.html"><span class="nav-icon">⌂</span><span>Portal home</span></a>
+
+        <div class="nav-section-label">Platforms</div>
+        <a href="../risk-register/dashboard.html"><span class="nav-icon">R</span><span>Risk Register</span></a>
+        <a class="active" href="./"><span class="nav-icon">V</span><span>Pre-Voting</span></a>
+        <a href="../agm-conduct/landingpage.html"><span class="nav-icon">A</span><span>Conduct of AGM</span></a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="page-header">
+        <div>
+          <div class="eyebrow">MSWG · Pre-Voting</div>
+          <h1>Meeting resolution review</h1>
+          <p class="subtitle">Retrieve Bursa Malaysia meeting resolutions and record a proposed voting position.</p>
+        </div>
+      </header>
+
+      <section class="url-section" aria-labelledby="retrieveHeading">
+        <div class="url-card">
+          <div class="url-card-copy">
+            <span class="step-label">01 · Retrieve</span>
+            <h2 id="retrieveHeading">Retrieve meeting resolutions</h2>
+            <p>Paste a Bursa Malaysia company announcement URL. Press Enter or select Retrieve.</p>
+          </div>
+
+          <form class="url-search" id="bursaForm">
+            <label class="sr-only" for="bursaUrl">Bursa Malaysia announcement URL</label>
+            <input
+              type="url"
+              id="bursaUrl"
+              autocomplete="url"
+              placeholder="https://www.bursamalaysia.com/market_information/announcements/..."
+              required
+            >
+            <button type="submit" id="retrieveBtn" class="retrieve-btn">Retrieve</button>
+          </form>
+
+          <div class="url-actions">
+            <a
+              href="https://www.bursamalaysia.com/market_information/announcements/company_announcement"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="bursa-link"
+            >
+              Open Bursa Malaysia <span aria-hidden="true">↗</span>
+            </a>
+            <span class="status-text" id="retrieveStatus" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="overviewHeading">
+        <div class="panel-heading">
+          <div>
+            <span class="step-label">02 · Review</span>
+            <h2 id="overviewHeading">Pre-voting overview</h2>
+            <p>Select one proposed position for each retrieved ordinary resolution.</p>
+          </div>
+          <div class="company-chip" id="companyChip" hidden>
+            <span>Company</span>
+            <strong id="companyName"></strong>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-no">No.</th>
+                <th>Ordinary Resolution</th>
+                <th class="vote-column">For</th>
+                <th class="vote-column">Against</th>
+                <th class="vote-column">Abstain</th>
+              </tr>
+            </thead>
+            <tbody id="resolutionBody"></tbody>
+          </table>
+
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon">V</div>
+            <strong>No resolutions retrieved yet</strong>
+            <p>Paste a Bursa announcement URL above to begin.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById("bursaForm");
+    const urlInput = document.getElementById("bursaUrl");
+    const retrieveButton = document.getElementById("retrieveBtn");
+    const statusElement = document.getElementById("retrieveStatus");
+    const resolutionBody = document.getElementById("resolutionBody");
+    const emptyState = document.getElementById("emptyState");
+    const companyChip = document.getElementById("companyChip");
+    const companyName = document.getElementById("companyName");
+
+    function isBursaUrl(value) {
+      try {
+        const parsed = new URL(value);
+        return parsed.protocol === "https:" && (
+          parsed.hostname === "www.bursamalaysia.com" ||
+          parsed.hostname.endsWith(".bursamalaysia.com")
+        );
+      } catch {
+        return false;
+      }
+    }
+
+    function renderResolutions(data) {
+      const resolutions = Array.isArray(data?.resolutions) ? data.resolutions : [];
+      const name = data?.company_name || data?.companyName || "";
+
+      companyName.textContent = name;
+      companyChip.hidden = !name;
+      emptyState.hidden = resolutions.length > 0;
+
+      resolutionBody.innerHTML = resolutions.map((resolution, index) => {
+        const description = resolution.description || "";
+        const action = resolution.shareholder_action || resolution.shareholderAction || "";
+        return `
+          <tr>
+            <td class="col-no">${index + 1}</td>
+            <td>
+              <div class="resolution-text">${escapeHtml(description)}</div>
+              ${action ? `<div class="shareholder-action">${escapeHtml(action)}</div>` : ""}
+            </td>
+            <td class="vote-cell"><input type="radio" name="vote_${index}" value="for" aria-label="For resolution ${index + 1}"></td>
+            <td class="vote-cell"><input type="radio" name="vote_${index}" value="against" aria-label="Against resolution ${index + 1}"></td>
+            <td class="vote-cell"><input type="radio" name="vote_${index}" value="abstain" aria-label="Abstain from resolution ${index + 1}"></td>
+          </tr>`;
+      }).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function retrieveNotice(url) {
+      retrieveButton.disabled = true;
+      retrieveButton.textContent = "Retrieving…";
+      statusElement.className = "status-text";
+      statusElement.textContent = "Connecting to the extraction service…";
+
+      try {
+        // Future FastAPI endpoint. It should accept { url } and return
+        // { company_name, resolutions: [{ description, shareholder_action }] }.
+        const endpoint = window.PRE_VOTING_API_URL || "/api/pre-voting/extract";
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Extraction service returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        renderResolutions(data);
+        statusElement.classList.add("success");
+        statusElement.textContent = "Resolutions retrieved successfully.";
+      } catch (error) {
+        statusElement.classList.add("error");
+        statusElement.textContent = "Extraction backend is not connected yet.";
+        console.error("Pre-Voting retrieval failed:", error);
+      } finally {
+        retrieveButton.disabled = false;
+        retrieveButton.textContent = "Retrieve";
+      }
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const url = urlInput.value.trim();
+
+      if (!isBursaUrl(url)) {
+        statusElement.className = "status-text error";
+        statusElement.textContent = "Enter a valid Bursa Malaysia URL.";
+        urlInput.focus();
+        return;
+      }
+
+      retrieveNotice(url);
+    });
+  </script>
+</body>
+</html>
