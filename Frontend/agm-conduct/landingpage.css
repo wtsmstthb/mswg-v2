@@ -98,6 +98,7 @@ h1 { font-size: 25px; margin: 0; letter-spacing: -.025em; }
 .section-count { white-space: nowrap; color: var(--muted); font: 600 10px var(--mono); background: var(--surface-soft); padding: 6px 9px; border-radius: 999px; }
 .form-body { padding: 22px; }
 .meeting-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-bottom: 24px; }
+.mode-guidance { margin-top: -8px; padding: 10px 12px; border-radius: 8px; background: var(--blue-soft); color: #385482; font-size: 10px; line-height: 1.45; }
 .field.full { grid-column: 1 / -1; }
 label.field-label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 6px; }
 .required { color: var(--red); }
@@ -114,6 +115,11 @@ textarea { min-height: 92px; resize: vertical; }
 .choice input { position: absolute; opacity: 0; pointer-events: none; }
 .choice span { display: grid; place-items: center; min-width: 40px; height: 32px; padding: 0 9px; border: 1px solid var(--line); border-radius: 7px; font: 600 10px var(--mono); color: var(--muted); background: #fff; }
 .choice input:checked + span { color: #fff; border-color: var(--blue); background: var(--blue); }
+.point-question .question-main { grid-template-columns: 34px minmax(0, 1fr); }
+.point-choices { grid-column: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.point-choice span { min-width: 0; height: auto; min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; text-align: left; }
+.point-choice span em { font: 600 10px var(--sans); font-style: normal; }
+.point-choice span b { white-space: nowrap; font: 600 9px var(--mono); }
 .question-comment { display: none; padding: 0 14px 14px 60px; }
 .question.has-no .question-comment { display: block; }
 .question-comment textarea { min-height: 62px; }
@@ -181,6 +187,7 @@ body.hod-mode .hod-action { display: inline-block; }
   .section-btn { min-width: 130px; }
   .question-main { grid-template-columns: 30px 1fr; }
   .choices { grid-column: 2; }
+  .point-choices { grid-template-columns: 1fr; }
   .question-comment { padding-left: 56px; }
   .meeting-grid { grid-template-columns: 1fr; }
   .score-panel { display: block; }
@@ -461,6 +468,7 @@ h1 { color: #1b2559; font-size: 26px; letter-spacing: -.6px; }
 .section-count { padding: 7px 10px; background: #f4f7fe; color: #707eae; }
 .form-body { padding: 18px 20px; }
 .meeting-grid { gap: 12px; margin-bottom: 18px; }
+.mode-guidance { border-radius: 11px; background: #f2efff; color: #6157a2; }
 label.field-label { color: #1b2559; font-size: 10px; }
 input[type="text"], input[type="date"], input[type="time"], input[type="number"], select, textarea {
   min-height: 40px;
@@ -496,6 +504,7 @@ input:focus, select:focus, textarea:focus {
   color: #8f9bba;
 }
 .choice input:checked + span { border-color: #422afb; background: #422afb; box-shadow: 0 6px 14px rgba(66,42,251,.18); }
+.point-choice span { min-height: 44px; border-radius: 11px; }
 .question-comment { padding: 0 13px 13px 52px; }
 .form-footer { padding: 12px 19px 15px; border-top: 1px solid #f1f3f8; background: #fff; }
 .footer-actions { margin-left: auto; }

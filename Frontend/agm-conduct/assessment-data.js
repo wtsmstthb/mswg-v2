@@ -2,23 +2,40 @@
 const sections = [
   { id: "details", letter: "—", short: "Meeting details", title: "Meeting details", description: "Enter the company and meeting information.", questions: [] },
   { id: "a", letter: "A", short: "Timeliness", title: "Timeliness of AGM and notice", description: "Assess whether the meeting and notice were conducted within the expected timeframe.", questions: [
-    { text: "The AGM was held within six months after the company's financial year end.", na: false },
-    { text: "Notice of AGM was sent at least 28 days before the meeting.", note: "Record the actual number of days in the comments when necessary.", na: false }
+    { id: "agm_timing", type: "points", text: "After the company's financial year end (FYE), the AGM was held:", maxPoints: 3, commentLabel: "Reason the AGM was held after 6 months", options: [
+      { value: "3", label: "Within 2 months", points: 3 },
+      { value: "2", label: "Within 2 to 4 months", points: 2 },
+      { value: "1", label: "Within 4 to 6 months", points: 1 },
+      { value: "0", label: "After 6 months", points: 0, requiresComment: true }
+    ]},
+    { id: "notice_28_days", text: "Notice of AGM was sent at least 28 days before the meeting.", note: "Record the actual number of days in the section comments.", na: false }
   ]},
-  { id: "b", letter: "B", short: "Venue & logistics", title: "Meeting venue, registration and logistics", description: "Assess accessibility, registration arrangements and meeting logistics.", questions: [
-    { text: "The meeting venue was within the vicinity of the registered or business address, or another acceptable venue.", na: false },
-    { text: "The registration process was smooth and had sufficient arrangements.", na: true },
-    { text: "Administrative information for registration was provided before the meeting.", na: false },
-    { text: "Shareholders' questions were displayed for participants during a virtual meeting.", note: "N/A if the meeting was physical or no questions were raised.", na: true }
-  ]},
+  { id: "b", letter: "B", short: "Venue & logistics", title: "Meeting venue, registration and logistics", description: "The questions shown here follow the meeting mode selected in Meeting details.", questionsByMode: {
+    Physical: [
+      { id: "physical_venue", text: "The meeting venue was within the vicinity of the company's registered or business address, or another venue with an acceptable reason.", na: false },
+      { id: "physical_counters", text: "There were sufficient registration counters and registration was smooth.", na: false },
+      { id: "physical_helpdesk", text: "A special helpdesk was provided.", note: "N/A may be selected when the expected crowd was small.", na: true },
+      { id: "physical_admin", text: "Administrative information, including the opening time of registration counters, was provided before the meeting.", na: false },
+      { id: "physical_early_entry", text: "Shareholders were allowed to enter the meeting room at least half an hour before the AGM started.", na: false },
+      { id: "physical_mingle", text: "Directors mingled with shareholders at the AGM.", na: false }
+    ],
+    Virtual: [
+      { id: "virtual_guide", text: "The administrative guide for registration, including its opening date and time, was clearly stated in the Notice of AGM.", note: "A link or reference provided in the Notice of Meeting is acceptable.", na: false },
+      { id: "virtual_questions", text: "Shareholders' questions were displayed on screen for all participants during the meeting.", note: "N/A applies if no questions were raised.", na: true }
+    ]
+  }},
   { id: "c", letter: "C", short: "Chairman", title: "Assessment of Chairman", description: "Assess how the Chairman opened, managed and concluded the meeting.", questions: [
-    { text: "The AGM was chaired by the Chairman of the company.", na: true },
-    { text: "Board members, senior management and external auditors were introduced.", na: false },
-    { text: "The voting procedures were clearly explained.", na: false },
-    { text: "Shareholders were given adequate opportunity and time to ask questions.", na: false },
-    { text: "The Board sufficiently answered all relevant questions.", na: true },
-    { text: "The Chairman managed the time and meeting in an orderly manner.", na: false },
-    { text: "The Chairman did not propose a resolution in which they had an interest.", na: true }
+    { id: "chairman_chair", text: "The AGM was chaired by the Chairman of the company.", note: "N/A applies when no Chairman is appointed at Board level.", na: true },
+    { id: "chairman_board_intro", text: "Board members were introduced.", na: false },
+    { id: "chairman_management_intro", text: "Senior Management was introduced.", na: false },
+    { id: "chairman_auditor_intro", text: "The external auditors were introduced.", na: false },
+    { id: "chairman_registered", text: "The number and proportion of registered shareholders and proxies were announced.", na: false },
+    { id: "chairman_voting", text: "The voting procedures were explained.", na: false },
+    { id: "chairman_questions", text: "Shareholders were given adequate opportunities and time to ask questions.", na: false },
+    { id: "chairman_answers", text: "The Board sufficiently answered all relevant questions.", note: "N/A applies if no questions were raised.", na: true },
+    { id: "chairman_order", text: "The Chairman managed the time and meeting in an orderly manner to the satisfaction of shareholders.", na: false },
+    { id: "chairman_reelection", text: "The Chairman did not propose their own re-election or re-appointment.", note: "N/A applies when no such resolution was tabled.", na: true },
+    { id: "chairman_interest", text: "The Chairman did not propose any resolution in which they had an interest.", note: "N/A applies when no resolution of interest to the Chairman was tabled.", na: true }
   ]},
   { id: "d", letter: "D", short: "Q&A", title: "Overall assessment of Question and Answer", description: "Assess the presentation, responses and facilities supporting the Q&A session.", questions: [
     { text: "A multimedia presentation on annual business performance was provided.", na: false },
@@ -27,8 +44,7 @@ const sections = [
     { text: "The audio equipment was in good working condition.", na: false }
   ]},
   { id: "e", letter: "E", short: "Board attendance", title: "Board attendance", description: "Record Board participation and explanations for any absence.", questions: [
-    { text: "All directors were present at the meeting.", na: false },
-    { text: "Any director's absence was supported by an acceptable explanation from the Chairman.", na: true }
+    { id: "all_directors_present", text: "All directors were present.", na: false }
   ]},
   { id: "f", letter: "F", short: "Poll voting", title: "Poll voting", description: "Assess the voting process and disclosure of voting outcomes.", questions: [
     { text: "Two-tier voting was conducted for independent directors who served more than nine years, where applicable.", na: true },
@@ -41,8 +57,6 @@ const sections = [
   { id: "j", letter: "J", short: "Remarks", title: "Overall remarks and observations", description: "Record exceptional matters, regulatory non-compliance or other important observations.", questions: [] }
 ];
 
-const state = { current: 0, status: "Draft", answers: {}, comments: {}, fields: { company: "Seri Maju Berhad", fye: "2025-12-31", type: "AGM", date: "2026-05-21", time: "10:00", mode: "Virtual", venue: "Broadcast from Kuala Lumpur", notice: "2026-04-17", attendees: "184", ended: "12:15", analyst: "Nur Amirah Amirudin", voting: "Virtual poll", remarks: "The meeting proceeded in an orderly manner. Shareholder questions were addressed during the Q&A session." } };
+const state = { current: 0, status: "Draft", answers: {}, comments: {}, fields: { company: "Seri Maju Berhad", fye: "2025-12-31", type: "AGM", date: "2026-05-21", time: "10:00", mode: "Virtual", hybrid: "No", venue: "Broadcast from Kuala Lumpur", notice: "2026-04-17", attendees: "184", ended: "12:15", analyst: "Nur Amirah Amirudin", voting: "Virtual poll", remarks: "The meeting proceeded in an orderly manner. Shareholder questions were addressed during the Q&A session." } };
 
-const scoredSections = sections.filter(s => s.questions.length);
-const totalQuestions = scoredSections.reduce((sum, s) => sum + s.questions.length, 0);
-document.getElementById("totalCount").textContent = totalQuestions;
+const scoredSections = sections.filter(section => section.questions?.length || section.questionsByMode);

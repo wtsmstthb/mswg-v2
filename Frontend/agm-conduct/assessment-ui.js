@@ -1,10 +1,13 @@
 /* Form rendering, navigation, field capture, and live scoring. */
 function esc(value) { return String(value ?? "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c])); }
-function key(sectionId, index) { return `${sectionId}-${index}`; }
+function key(sectionId, question, index) { return `${sectionId}-${question.id || index}`; }
+function questionsFor(section) { return section.questionsByMode?.[state.fields.mode] || section.questions || []; }
+function getTotalQuestions() { return scoredSections.reduce((sum, section) => sum + questionsFor(section).length, 0); }
 
 function renderNav() {
   document.getElementById("sectionNavList").innerHTML = sections.map((s, i) => {
-    const complete = s.questions.length && s.questions.every((_, q) => state.answers[key(s.id, q)]);
+    const questions = questionsFor(s);
+    const complete = questions.length && questions.every((question, q) => state.answers[key(s.id, question, q)] !== undefined);
     return `<button class="section-btn ${i === state.current ? "active" : ""}" data-index="${i}"><span class="section-letter">${s.letter}</span><span>${s.short}</span><span class="section-check">${complete ? "✓" : ""}</span></button>`;
   }).join("");
   document.getElementById("sectionNavCurrent").textContent = sections[state.current].short;
@@ -19,14 +22,17 @@ function detailsTemplate() {
     ${selectField("type", "Type of meeting", ["AGM","EGM"], f.type)}
     ${field("date", "Date of meeting", f.date, "date", true)}
     ${field("time", "Start time", f.time, "time", true)}
-    ${selectField("mode", "Mode of meeting", ["Physical","Virtual","Hybrid"], f.mode)}
+    ${selectField("mode", "Mode of meeting", ["Physical","Virtual"], f.mode)}
+    ${selectField("hybrid", "Is it a hybrid meeting?", ["No","Yes"], f.hybrid)}
     ${field("venue", "Meeting / broadcast venue", f.venue, "text", true, true)}
     ${field("notice", "Date of notice", f.notice, "date", true)}
     ${field("attendees", "Shareholders attended / viewers", f.attendees, "number", true)}
     ${field("ended", "Meeting ended at", f.ended, "time", false)}
     ${field("analyst", "Analyst / Assessor", f.analyst, "text", true)}
-  </div>`;
+  </div><div class="mode-guidance" id="modeGuidance">${modeGuidanceText(f.mode)}</div>`;
 }
+
+function modeGuidanceText(mode) { return `${mode} meeting selected. Section B will show the ${mode.toLowerCase()} questionnaire.`; }
 
 function field(id, label, value, type="text", required=false, full=false) { return `<div class="field ${full ? "full" : ""}"><label class="field-label" for="${id}">${label}${required ? ' <span class="required">*</span>' : ""}</label><input id="${id}" data-field="${id}" type="${type}" value="${esc(value)}" ${required ? "required" : ""}></div>`; }
 function selectField(id, label, options, value) { return `<div class="field"><label class="field-label" for="${id}">${label} <span class="required">*</span></label><select id="${id}" data-field="${id}">${options.map(o => `<option ${o === value ? "selected" : ""}>${o}</option>`).join("")}</select></div>`; }
@@ -38,31 +44,42 @@ function textSectionTemplate(section) {
   return `<div class="field"><label class="field-label" for="${id}">${labels[section.id]}</label><textarea id="${id}" data-field="${id}" placeholder="Enter details here...">${esc(state.fields[id] || "")}</textarea></div>`;
 }
 
-function questionsTemplate(section) {
-  return section.questions.map((q, i) => {
-    const k = key(section.id, i), selected = state.answers[k] || "";
-    return `<div class="question ${selected === "N" ? "has-no" : ""}" data-question="${k}"><div class="question-main"><div class="q-number">${i+1}</div><div class="q-text">${q.text}${q.note ? `<span class="q-note">${q.note}</span>` : ""}</div><div class="choices">
-      ${choice(k,"Y",selected)}${choice(k,"N",selected)}${q.na ? choice(k,"NA",selected) : ""}
-    </div></div><div class="question-comment"><label class="field-label" for="comment-${k}">Reason / comment for No</label><textarea id="comment-${k}" data-comment="${k}" placeholder="Explain the observation...">${esc(state.comments[k] || "")}</textarea></div></div>`;
+function questionsTemplate(section, questions) {
+  return questions.map((q, i) => {
+    const k = key(section.id, q, i), selected = state.answers[k] ?? "";
+    const requiresComment = selected === "N" || (q.type === "points" && selected === "0");
+    const choices = q.type === "points"
+      ? `<div class="point-choices">${q.options.map(option => pointChoice(k, option, selected)).join("")}</div>`
+      : `<div class="choices">${choice(k,"Y",selected)}${choice(k,"N",selected)}${q.na ? choice(k,"NA",selected) : ""}</div>`;
+    return `<div class="question ${q.type === "points" ? "point-question" : ""} ${requiresComment ? "has-no" : ""}" data-question="${k}"><div class="question-main"><div class="q-number">${i+1}</div><div class="q-text">${q.text}${q.note ? `<span class="q-note">${q.note}</span>` : ""}</div>${choices}</div><div class="question-comment"><label class="field-label" for="comment-${k}">${q.commentLabel || "Reason / comment for No"}</label><textarea id="comment-${k}" data-comment="${k}" placeholder="Explain the observation...">${esc(state.comments[k] || "")}</textarea></div></div>`;
   }).join("") + `<div class="field" style="margin-top:18px"><label class="field-label" for="sectionComment">Section comments</label><textarea id="sectionComment" data-field="comment_${section.id}" placeholder="Record complaints, supporting details or observations...">${esc(state.fields[`comment_${section.id}`] || "")}</textarea></div>`;
 }
 
 function choice(k, value, selected) { return `<label class="choice"><input type="radio" name="${k}" value="${value}" ${selected === value ? "checked" : ""}><span>${value}</span></label>`; }
+function pointChoice(k, option, selected) { return `<label class="choice point-choice"><input type="radio" name="${k}" value="${option.value}" data-requires-comment="${option.requiresComment ? "true" : "false"}" ${selected === option.value ? "checked" : ""}><span><em>${option.label}</em><b>${option.points} ${option.points === 1 ? "point" : "points"}</b></span></label>`; }
 
 function renderForm() {
   const section = sections[state.current];
+  const questions = questionsFor(section);
   document.getElementById("sectionTitle").textContent = section.title;
-  document.getElementById("sectionDescription").textContent = section.description;
-  document.getElementById("sectionCount").textContent = section.questions.length ? `${section.questions.length} QUESTIONS` : (section.id === "details" ? "DETAILS" : "NOTES");
-  document.getElementById("formBody").innerHTML = section.id === "details" ? detailsTemplate() : (section.questions.length ? questionsTemplate(section) : textSectionTemplate(section));
+  document.getElementById("sectionDescription").textContent = section.questionsByMode ? `${section.description} Showing ${state.fields.mode.toLowerCase()} meeting questions.` : section.description;
+  document.getElementById("sectionCount").textContent = questions.length ? `${questions.length} ${section.questionsByMode ? state.fields.mode.toUpperCase() + " " : ""}QUESTIONS` : (section.id === "details" ? "DETAILS" : "NOTES");
+  document.getElementById("formBody").innerHTML = section.id === "details" ? detailsTemplate() : (questions.length ? questionsTemplate(section, questions) : textSectionTemplate(section));
   const previousButton = document.getElementById("previousBtn");
   previousButton.hidden = state.current === 0;
   previousButton.disabled = state.current === 0;
   document.getElementById("nextBtn").textContent = state.current === sections.length - 1 ? "Submit for review" : "Next section";
+  const modeSelect = document.getElementById("mode");
+  if (modeSelect) modeSelect.addEventListener("change", e => {
+    state.fields.mode = e.target.value;
+    document.getElementById("modeGuidance").textContent = modeGuidanceText(e.target.value);
+    updateScores();
+    renderNav();
+  });
   document.querySelectorAll('input[type="radio"]').forEach(input => input.addEventListener("change", e => {
     state.answers[e.target.name] = e.target.value;
     const question = e.target.closest(".question");
-    question.classList.toggle("has-no", e.target.value === "N");
+    question.classList.toggle("has-no", e.target.value === "N" || e.target.dataset.requiresComment === "true");
     updateScores(); renderNav();
   }));
 }
@@ -73,24 +90,40 @@ function captureFields() {
 }
 
 function sectionStats(section) {
-  const values = section.questions.map((_, i) => state.answers[key(section.id, i)]).filter(Boolean);
-  const yes = values.filter(v => v === "Y").length, no = values.filter(v => v === "N").length, na = values.filter(v => v === "NA").length;
-  const applicable = yes + no;
-  return { yes, no, na, answered: values.length, applicable, score: applicable ? Math.round(yes / applicable * 100) : null };
+  const questions = questionsFor(section);
+  let yes = 0, no = 0, na = 0, answered = 0, applicable = 0, earned = 0, possible = 0;
+  questions.forEach((question, index) => {
+    const value = state.answers[key(section.id, question, index)];
+    if (value === undefined || value === "") return;
+    answered++;
+    if (value === "NA") { na++; return; }
+    applicable++;
+    if (question.type === "points") {
+      earned += Number(value);
+      possible += question.maxPoints;
+      return;
+    }
+    possible++;
+    if (value === "Y") { yes++; earned++; }
+    if (value === "N") no++;
+  });
+  return { yes, no, na, answered, applicable, earned, possible, score: possible ? Math.round(earned / possible * 100) : null };
 }
 
 function updateScores() {
   const all = scoredSections.map(sectionStats);
-  const yes = all.reduce((n,s) => n+s.yes,0), no = all.reduce((n,s) => n+s.no,0), na = all.reduce((n,s) => n+s.na,0), answered = all.reduce((n,s) => n+s.answered,0);
-  const applicable = yes + no, score = applicable ? Math.round(yes/applicable*100) : null;
+  const earned = all.reduce((n,s) => n+s.earned,0), possible = all.reduce((n,s) => n+s.possible,0), na = all.reduce((n,s) => n+s.na,0), answered = all.reduce((n,s) => n+s.answered,0), applicable = all.reduce((n,s) => n+s.applicable,0);
+  const score = possible ? Math.round(earned/possible*100) : null;
+  const totalQuestions = getTotalQuestions();
   const display = score === null ? "—" : `${score}%`;
   document.getElementById("summaryScore").textContent = display;
   document.getElementById("liveScore").textContent = score === null ? "—" : score;
   document.getElementById("scoreSuffix").textContent = score === null ? "" : "%";
   document.getElementById("answeredCount").textContent = answered;
+  document.getElementById("totalCount").textContent = totalQuestions;
   document.getElementById("applicableCount").textContent = applicable;
   document.getElementById("naCount").textContent = na;
-  document.getElementById("progressFill").style.width = `${answered/totalQuestions*100}%`;
+  document.getElementById("progressFill").style.width = `${totalQuestions ? answered/totalQuestions*100 : 0}%`;
   document.getElementById("scoreBreakdown").innerHTML = scoredSections.map(s => { const x=sectionStats(s); return `<div class="score-row"><span>${s.letter}. ${s.short}</span><strong>${x.score === null ? "—" : x.score+"%"}</strong></div>`; }).join("");
 }
 
