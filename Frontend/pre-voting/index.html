@@ -1,215 +1,477 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
   <title>MSWG Pre-Voting</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="prevoting.css">
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    rel="stylesheet"
+  >
+
+  <link
+    rel="stylesheet"
+    href="prevoting.css"
+  >
 </head>
+
+
 <body>
-  <div class="shell">
-    <aside class="sidebar" aria-label="Platform navigation">
-      <a class="sidebar-brand" href="../portal/index.html">
-        <span class="sidebar-brand-mark">M</span>
-        <span class="sidebar-brand-copy"><strong>MSWG</strong><small>Internal Platform</small></span>
-      </a>
 
-      <nav>
-        <div class="nav-section-label">Workspace</div>
-        <a href="../portal/index.html"><span class="nav-icon">⌂</span><span>Portal home</span></a>
+<div class="app">
 
-        <div class="nav-section-label">Platforms</div>
-        <a href="../risk-register/dashboard.html"><span class="nav-icon">R</span><span>Risk Register</span></a>
-        <a class="active" href="./"><span class="nav-icon">V</span><span>Pre-Voting</span></a>
-        <a href="../agm-conduct/landingpage.html"><span class="nav-icon">A</span><span>Conduct of AGM</span></a>
-      </nav>
-    </aside>
+  <aside
+    class="sidebar"
+    id="sidebarMount"
+  ></aside>
 
-    <main class="main">
-      <header class="page-header">
+
+  <!-- =========================
+       MAIN CONTENT
+  ========================== -->
+
+  <main class="main">
+
+    <div class="content">
+
+
+      <!-- =========================
+           PAGE HEADER
+      ========================== -->
+
+      <div class="page-heading">
+
         <div>
-          <div class="eyebrow">MSWG · Pre-Voting</div>
-          <h1>Meeting resolution review</h1>
-          <p class="subtitle">Retrieve Bursa Malaysia meeting resolutions and record a proposed voting position.</p>
-        </div>
-      </header>
 
-      <section class="url-section" aria-labelledby="retrieveHeading">
-        <div class="url-card">
-          <div class="url-card-copy">
-            <span class="step-label">01 · Retrieve</span>
-            <h2 id="retrieveHeading">Retrieve meeting resolutions</h2>
-            <p>Paste a Bursa Malaysia company announcement URL. Press Enter or select Retrieve.</p>
+          <div class="eyebrow">
+            SHAREHOLDER VOTING
           </div>
 
-          <form class="url-search" id="bursaForm">
-            <label class="sr-only" for="bursaUrl">Bursa Malaysia announcement URL</label>
+          <h1>
+            Pre-Voting
+          </h1>
+
+          <div class="subtitle">
+            Retrieve Bursa Malaysia meeting information
+            and prepare voting decisions.
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- =========================
+           BURSA ANNOUNCEMENT
+      ========================== -->
+
+      <section class="card form-card">
+
+        <div class="form-head">
+
+          <div>
+
+            <h2>
+              Bursa Announcement
+            </h2>
+
+            <p>
+              Paste a Bursa Malaysia Notice of Meeting URL
+              to retrieve the meeting information and
+              Ordinary Resolutions.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-body">
+
+          <div class="bursa-search-row">
+
             <input
               type="url"
               id="bursaUrl"
-              autocomplete="url"
               placeholder="https://www.bursamalaysia.com/market_information/announcements/..."
-              required
+              autocomplete="off"
             >
-            <button type="submit" id="retrieveBtn" class="retrieve-btn">Retrieve</button>
-          </form>
 
-          <div class="url-actions">
+            <button
+              type="button"
+              class="btn primary"
+              id="retrieveBtn"
+            >
+              Retrieve
+            </button>
+
+          </div>
+
+
+          <div class="bursa-search-footer">
+
             <a
               href="https://www.bursamalaysia.com/market_information/announcements/company_announcement"
               target="_blank"
               rel="noopener noreferrer"
               class="bursa-link"
             >
-              Open Bursa Malaysia <span aria-hidden="true">↗</span>
+              Open Bursa Malaysia ↗
             </a>
-            <span class="status-text" id="retrieveStatus" role="status" aria-live="polite"></span>
+
+            <span
+              id="statusMessage"
+              class="status-message"
+            ></span>
+
           </div>
+
         </div>
+
       </section>
 
-      <section class="panel" aria-labelledby="overviewHeading">
-        <div class="panel-heading">
+
+      <!-- =========================
+           MEETING INFORMATION
+      ========================== -->
+
+      <section class="card form-card">
+
+        <div class="form-head">
+
           <div>
-            <span class="step-label">02 · Review</span>
-            <h2 id="overviewHeading">Pre-voting overview</h2>
-            <p>Select one proposed position for each retrieved ordinary resolution.</p>
+
+            <h2>
+              Meeting Information
+            </h2>
+
+            <p>
+              Information retrieved from the
+              Bursa Malaysia announcement.
+            </p>
+
           </div>
-          <div class="company-chip" id="companyChip" hidden>
-            <span>Company</span>
-            <strong id="companyName"></strong>
-          </div>
+
         </div>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th class="col-no">No.</th>
-                <th>Ordinary Resolution</th>
-                <th class="vote-column">For</th>
-                <th class="vote-column">Against</th>
-                <th class="vote-column">Abstain</th>
-              </tr>
-            </thead>
-            <tbody id="resolutionBody"></tbody>
-          </table>
 
-          <div class="empty-state" id="emptyState">
-            <div class="empty-icon">V</div>
-            <strong>No resolutions retrieved yet</strong>
-            <p>Paste a Bursa announcement URL above to begin.</p>
+        <div class="form-body">
+
+          <div class="meeting-information-grid">
+
+
+            <!-- COMPANY -->
+
+            <div class="meeting-field full">
+
+              <div class="meeting-field-label">
+                COMPANY
+              </div>
+
+              <div
+                class="meeting-field-value empty-value"
+                id="companyName"
+              >
+                Retrieve an announcement to display the company information.
+              </div>
+
+            </div>
+
+
+            <!-- MEETING TYPE -->
+
+            <div class="meeting-field full">
+
+              <div class="meeting-field-label">
+                MEETING TYPE
+              </div>
+
+              <div
+                class="meeting-field-value empty-value"
+                id="meetingDisplayType"
+              >
+                Retrieve an announcement to display the meeting type.
+              </div>
+
+            </div>
+
+
+            <!-- DATE -->
+
+            <div class="meeting-field">
+
+              <div class="meeting-field-label">
+                DATE
+              </div>
+
+              <div
+                class="meeting-field-value empty-value"
+                id="meetingDate"
+              >
+                Retrieve an announcement to display the meeting date.
+              </div>
+
+            </div>
+
+
+            <!-- TIME -->
+
+            <div class="meeting-field">
+
+              <div class="meeting-field-label">
+                TIME
+              </div>
+
+              <div
+                class="meeting-field-value empty-value"
+                id="meetingTime"
+              >
+                Retrieve an announcement to display the meeting time.
+              </div>
+
+            </div>
+
+
+            <!-- VENUE -->
+
+            <div class="meeting-field full">
+
+              <div class="meeting-field-label">
+                VENUE
+              </div>
+
+              <div
+                class="meeting-field-value empty-value preserve-lines"
+                id="meetingVenue"
+              >
+                Retrieve an announcement to display the meeting venue.
+              </div>
+
+            </div>
+
+
           </div>
+
         </div>
+
       </section>
-    </main>
-  </div>
 
-  <script>
-    const form = document.getElementById("bursaForm");
-    const urlInput = document.getElementById("bursaUrl");
-    const retrieveButton = document.getElementById("retrieveBtn");
-    const statusElement = document.getElementById("retrieveStatus");
-    const resolutionBody = document.getElementById("resolutionBody");
-    const emptyState = document.getElementById("emptyState");
-    const companyChip = document.getElementById("companyChip");
-    const companyName = document.getElementById("companyName");
 
-    function isBursaUrl(value) {
-      try {
-        const parsed = new URL(value);
-        return parsed.protocol === "https:" && (
-          parsed.hostname === "www.bursamalaysia.com" ||
-          parsed.hostname.endsWith(".bursamalaysia.com")
-        );
-      } catch {
-        return false;
-      }
-    }
+      <!-- =========================
+           ORDINARY RESOLUTIONS
+      ========================== -->
 
-    function renderResolutions(data) {
-      const resolutions = Array.isArray(data?.resolutions) ? data.resolutions : [];
-      const name = data?.company_name || data?.companyName || "";
+      <section class="card form-card">
 
-      companyName.textContent = name;
-      companyChip.hidden = !name;
-      emptyState.hidden = resolutions.length > 0;
+        <div class="form-head">
 
-      resolutionBody.innerHTML = resolutions.map((resolution, index) => {
-        const description = resolution.description || "";
-        const action = resolution.shareholder_action || resolution.shareholderAction || "";
-        return `
-          <tr>
-            <td class="col-no">${index + 1}</td>
-            <td>
-              <div class="resolution-text">${escapeHtml(description)}</div>
-              ${action ? `<div class="shareholder-action">${escapeHtml(action)}</div>` : ""}
-            </td>
-            <td class="vote-cell"><input type="radio" name="vote_${index}" value="for" aria-label="For resolution ${index + 1}"></td>
-            <td class="vote-cell"><input type="radio" name="vote_${index}" value="against" aria-label="Against resolution ${index + 1}"></td>
-            <td class="vote-cell"><input type="radio" name="vote_${index}" value="abstain" aria-label="Abstain from resolution ${index + 1}"></td>
-          </tr>`;
-      }).join("");
-    }
+          <div>
 
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
+            <h2>
+              Ordinary Resolutions
+            </h2>
 
-    async function retrieveNotice(url) {
-      retrieveButton.disabled = true;
-      retrieveButton.textContent = "Retrieving…";
-      statusElement.className = "status-text";
-      statusElement.textContent = "Connecting to the extraction service…";
+            <p>
+              Select one voting decision for each
+              Ordinary Resolution. Remarks are required
+              when selecting Against or Abstain.
+            </p>
 
-      try {
-        // Future FastAPI endpoint. It should accept { url } and return
-        // { company_name, resolutions: [{ description, shareholder_action }] }.
-        const endpoint = window.PRE_VOTING_API_URL || "/api/pre-voting/extract";
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url })
-        });
+          </div>
 
-        if (!response.ok) {
-          throw new Error(`Extraction service returned ${response.status}`);
-        }
 
-        const data = await response.json();
-        renderResolutions(data);
-        statusElement.classList.add("success");
-        statusElement.textContent = "Resolutions retrieved successfully.";
-      } catch (error) {
-        statusElement.classList.add("error");
-        statusElement.textContent = "Extraction backend is not connected yet.";
-        console.error("Pre-Voting retrieval failed:", error);
-      } finally {
-        retrieveButton.disabled = false;
-        retrieveButton.textContent = "Retrieve";
-      }
-    }
+          <div
+            class="section-count"
+            id="resolutionCount"
+          >
+            0 RESOLUTIONS
+          </div>
 
-    form.addEventListener("submit", event => {
-      event.preventDefault();
-      const url = urlInput.value.trim();
+        </div>
 
-      if (!isBursaUrl(url)) {
-        statusElement.className = "status-text error";
-        statusElement.textContent = "Enter a valid Bursa Malaysia URL.";
-        urlInput.focus();
-        return;
-      }
 
-      retrieveNotice(url);
-    });
-  </script>
+        <div class="form-body">
+
+          <div class="resolution-table-wrap">
+
+            <table class="report-table resolution-table">
+
+              <thead>
+
+                <tr>
+
+                  <th class="resolution-no">
+                    No.
+                  </th>
+
+                  <th>
+                    Ordinary Resolution
+                  </th>
+
+                  <th class="vote-heading">
+                    For
+                  </th>
+
+                  <th class="vote-heading">
+                    Against
+                  </th>
+
+                  <th class="vote-heading">
+                    Abstain
+                  </th>
+
+                  <th class="remarks-heading">
+                    Remarks
+                  </th>
+
+                </tr>
+
+              </thead>
+
+
+              <tbody id="resolutionBody">
+
+                <tr>
+
+                  <td
+                    colspan="6"
+                    class="resolution-empty-cell"
+                  >
+
+                    <div class="resolution-empty">
+
+                      <strong>
+                        No resolutions retrieved
+                      </strong>
+
+                      <span>
+                        Paste a Bursa Malaysia announcement URL
+                        above and click Retrieve.
+                      </span>
+
+                    </div>
+
+                  </td>
+
+                </tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           OVERALL REMARKS
+      ========================== -->
+
+      <section class="card form-card">
+
+        <div class="form-head">
+
+          <div>
+
+            <h2>
+              Overall Remarks
+            </h2>
+
+            <p>
+              Optional notes or comments relating
+              to this meeting.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-body">
+
+          <textarea
+            id="overallRemarks"
+            placeholder="Enter overall remarks..."
+          ></textarea>
+
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           ACTION BUTTONS
+      ========================== -->
+
+      <div class="pre-voting-footer">
+
+        <button
+          type="button"
+          class="btn"
+          id="clearBtn"
+        >
+          Clear All
+        </button>
+
+
+        <div class="footer-actions">
+
+          <button
+            type="button"
+            class="btn"
+            id="draftBtn"
+          >
+            Save as Draft
+          </button>
+
+          <button
+            type="button"
+            class="btn primary"
+            id="submitBtn"
+          >
+            Submit Votes
+          </button>
+
+        </div>
+
+      </div>
+
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script>
+  window.CURRENT_PAGE = "pre-voting";
+</script>
+
+<script src="sidebar.js"></script>
+<script src="prevoting.js"></script>
+
 </body>
+
 </html>
