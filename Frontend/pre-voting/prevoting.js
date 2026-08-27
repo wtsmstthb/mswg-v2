@@ -3,7 +3,6 @@
 let currentMeeting = null;
 
 
-
 /*
 =========================================================
 DERIVE USER-FRIENDLY MEETING TYPE
@@ -18,6 +17,8 @@ becomes:
 "112th Annual General Meeting"
 =========================================================
 */
+
+console.log("prevoting.js loaded");
 
 function deriveMeetingType(
   description,
@@ -171,15 +172,13 @@ function renderMeeting(data) {
         return;
       }
 
+
       element.textContent =
         value || "Not available";
 
-      /*
-       * Real data is now displayed,
-       * so remove empty-state styling.
-       */
+
       element.classList.remove(
-        "empty-state-text"
+        "empty-value"
       );
 
     }
@@ -587,40 +586,24 @@ function isValidBursaUrl(url) {
 
 /*
 =========================================================
-RETRIEVE BURSA ANNOUNCEMENT
+RETRIEVE BURSA ANNOUNCEMENT NOTICE
 =========================================================
 */
 
 async function retrieveAnnouncement() {
 
   const input =
-    document.getElementById(
-      "bursaUrl"
-    );
-
+    document.getElementById("bursaUrl");
 
   const button =
-    document.getElementById(
-      "retrieveBtn"
-    );
-
+    document.getElementById("retrieveBtn");
 
   const status =
-    document.getElementById(
-      "statusMessage"
-    );
-
+    document.getElementById("statusMessage");
 
   const url =
     input.value.trim();
 
-
-
-  /*
-  ---------------------------------------------------------
-  EMPTY URL
-  ---------------------------------------------------------
-  */
 
   if (!url) {
 
@@ -631,43 +614,13 @@ async function retrieveAnnouncement() {
       "status-message error";
 
     return;
-
   }
 
 
-
-  /*
-  ---------------------------------------------------------
-  INVALID BURSA URL
-  ---------------------------------------------------------
-  */
-
-  if (!isValidBursaUrl(url)) {
-
-    status.textContent =
-      "Please enter a valid Bursa Malaysia URL.";
-
-    status.className =
-      "status-message error";
-
-    return;
-
-  }
-
-
-
-  /*
-  ---------------------------------------------------------
-  LOADING STATE
-  ---------------------------------------------------------
-  */
-
-  button.disabled =
-    true;
+  button.disabled = true;
 
   button.textContent =
     "Retrieving...";
-
 
   status.textContent =
     "Retrieving Bursa announcement...";
@@ -676,104 +629,42 @@ async function retrieveAnnouncement() {
     "status-message";
 
 
-
   try {
 
-    /*
-      FastAPI endpoint.
+    const response = await fetch(
+      "http://127.0.0.1:8000/api/pre-voting/extract",
+      {
+        method: "POST",
 
-      We will connect this to:
+        headers: {
+          "Content-Type": "application/json"
+        },
 
-      extract_bursa_notice(url)
+        body: JSON.stringify({
+          url: url
+        })
+      }
+    );
 
-      on the Python backend.
-    */
-
-    const response =
-      await fetch(
-
-        "/api/pre-voting/extract",
-
-        {
-
-          method:
-            "POST",
-
-
-          headers: {
-
-            "Content-Type":
-              "application/json"
-
-          },
-
-
-          body:
-            JSON.stringify({
-
-              url: url
-
-            })
-
-        }
-
-      );
-
-
-
-    /*
-    -------------------------------------------------------
-    HTTP ERROR
-    -------------------------------------------------------
-    */
 
     if (!response.ok) {
 
+      const errorData =
+        await response.json();
+
       throw new Error(
-        `Request failed (${response.status})`
+        errorData.detail ||
+        "Unable to retrieve announcement."
       );
-
     }
-
 
 
     const data =
       await response.json();
 
 
+    currentMeeting = data;
 
-    /*
-    -------------------------------------------------------
-    BACKEND ERROR
-    -------------------------------------------------------
-    */
-
-    if (data.error) {
-
-      throw new Error(
-        data.error
-      );
-
-    }
-
-
-
-    /*
-    -------------------------------------------------------
-    SAVE CURRENT MEETING
-    -------------------------------------------------------
-    */
-
-    currentMeeting =
-      data;
-
-
-
-    /*
-    -------------------------------------------------------
-    DISPLAY RESULTS
-    -------------------------------------------------------
-    */
 
     renderMeeting(
       data
@@ -785,49 +676,38 @@ async function retrieveAnnouncement() {
     );
 
 
-
     status.textContent =
       "Meeting information retrieved successfully.";
-
 
     status.className =
       "status-message success";
 
   }
 
-
-
   catch (error) {
 
     console.error(
-      "Bursa extraction error:",
       error
     );
 
 
     status.textContent =
-      "The Bursa extraction backend is not connected or the announcement could not be retrieved.";
-
+      error.message;
 
     status.className =
       "status-message error";
 
   }
 
-
-
   finally {
 
-    button.disabled =
-      false;
+    button.disabled = false;
 
     button.textContent =
       "Retrieve";
 
   }
-
 }
-
 
 
 /*
@@ -885,30 +765,25 @@ function clearForm() {
 
     "meetingDisplayType",
 
-    "meetingType",
-
     "meetingDate",
 
     "meetingTime",
 
     "meetingVenue",
 
-    "recordDepositors"
-
   ];
 
 
-  fields.forEach(
-    id => {
+  fields.forEach(id => {
 
-      document
-        .getElementById(id)
-        .textContent =
-          "—";
+    const element =
+      document.getElementById(id);
 
+    if (element) {
+      element.textContent = "";
     }
-  );
 
+  });
 
 
   /*
@@ -1240,22 +1115,38 @@ document.addEventListener(
   "DOMContentLoaded",
   () => {
 
+    console.log("DOM loaded");
 
-    /*
-    -------------------------------------------------------
-    RETRIEVE BUTTON
-    -------------------------------------------------------
-    */
+    const retrieveBtn =
+      document.getElementById("retrieveBtn");
 
-    document
-      .getElementById(
-        "retrieveBtn"
-      )
-      .addEventListener(
+    console.log(
+      "Retrieve button:",
+      retrieveBtn
+    );
+
+    if (retrieveBtn) {
+
+      retrieveBtn.addEventListener(
         "click",
-        retrieveAnnouncement
+        () => {
+
+          console.log(
+            "Retrieve button clicked"
+          );
+
+          retrieveAnnouncement();
+
+        }
       );
 
+    } else {
+
+      console.error(
+        "retrieveBtn not found"
+      );
+
+    }
 
 
     /*
