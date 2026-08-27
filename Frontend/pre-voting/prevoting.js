@@ -405,25 +405,33 @@ function renderResolutions(
 
 
               <!-- REMARKS -->
-              <td>
-
-                <textarea
-                  class="resolution-remarks"
-                  data-index="${index}"
-                  placeholder="
-                    Required for Against / Abstain
-                  "
-                  disabled
-                ></textarea>
-
+              <td class="remarks-cell">
 
                 <div
-                  class="remarks-error"
-                  data-error-index="${index}"
-                ></div>
+                  class="remarks-wrapper"
+                  data-remarks-index="${index}"
+                  hidden
+                >
+
+                  <div class="remarks-label">
+                    Remarks <span class="required-mark">*</span>
+                  </div>
+
+                  <textarea
+                    class="resolution-remarks"
+                    data-index="${index}"
+                    placeholder="Please provide a reason..."
+                    disabled
+                  ></textarea>
+
+                  <div
+                    class="remarks-error"
+                    data-error-index="${index}"
+                  ></div>
+
+                </div>
 
               </td>
-
 
             </tr>
 
@@ -464,86 +472,84 @@ function attachVoteEvents() {
       'input[type="radio"][data-index]'
     );
 
+  radios.forEach(radio => {
 
-  radios.forEach(
-    radio => {
+    radio.addEventListener(
+      "change",
+      function () {
 
-      radio.addEventListener(
-        "change",
-        function () {
+        const index =
+          this.dataset.index;
 
-          const index =
-            this.dataset.index;
+        const remarksWrapper =
+          document.querySelector(
+            `[data-remarks-index="${index}"]`
+          );
 
+        const remarks =
+          document.querySelector(
+            `.resolution-remarks[data-index="${index}"]`
+          );
 
-          const remarks =
-            document.querySelector(
-              `.resolution-remarks[data-index="${index}"]`
-            );
-
-
-          const error =
-            document.querySelector(
-              `[data-error-index="${index}"]`
-            );
-
-
-          /*
-          -----------------------------------------------
-          AGAINST / ABSTAIN
-          -----------------------------------------------
-          */
-
-          if (
-            this.value === "against" ||
-            this.value === "abstain"
-          ) {
-
-            remarks.disabled =
-              false;
-
-            remarks.required =
-              true;
-
-            remarks.placeholder =
-              "Please provide a reason...";
-
-          }
+        const error =
+          document.querySelector(
+            `[data-error-index="${index}"]`
+          );
 
 
-          /*
-          -----------------------------------------------
-          FOR
-          -----------------------------------------------
-          */
+        // AGAINST
+        if (this.value === "against") {
 
-          else {
+          remarksWrapper.hidden = false;
 
-            remarks.disabled =
-              true;
+          remarks.disabled = false;
+          remarks.required = true;
 
-            remarks.required =
-              false;
+          remarks.placeholder =
+            "Please provide a reason for voting Against.";
 
-            remarks.value =
-              "";
+          error.textContent = "";
 
-            remarks.placeholder =
-              "Required for Against / Abstain";
-
-            error.textContent =
-              "";
-
-          }
-
+          remarks.focus();
         }
-      );
 
-    }
-  );
+
+        // ABSTAIN
+        else if (this.value === "abstain") {
+
+          remarksWrapper.hidden = false;
+
+          remarks.disabled = false;
+          remarks.required = true;
+
+          remarks.placeholder =
+            "Please provide a reason for Abstaining.";
+
+          error.textContent = "";
+
+          remarks.focus();
+        }
+
+
+        // FOR
+        else {
+
+          remarksWrapper.hidden = true;
+
+          remarks.disabled = true;
+          remarks.required = false;
+
+          remarks.value = "";
+
+          error.textContent = "";
+        }
+
+      }
+    );
+
+  });
 
 }
-
 
 
 /*
