@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Completing sign in - MSWG Platform Portal</title>
+  <link rel="stylesheet" href="shell.css">
+</head>
+<body>
+  <main class="access-message">
+    <div class="profile-page-card">
+      <div class="eyebrow">MSWG Internal Systems</div>
+      <h1>Completing sign in</h1>
+      <p class="subtitle" id="callbackStatus">Validating the secure response…</p>
+    </div>
+  </main>
+  <script src="config.js"></script>
+  <script>
+    (async function completeSignIn(){
+      const status = document.getElementById("callbackStatus");
+      const parameters = new URLSearchParams(window.location.search);
+      const error = parameters.get("error");
+      const code = parameters.get("code");
+      const state = parameters.get("state");
+      const expectedState = sessionStorage.getItem("mswg_rr_oauth_state");
+      const verifier = sessionStorage.getItem("mswg_rr_pkce_verifier");
+      const config = window.APP_CONFIG.cognito;
+
+      if (error || !code || !state || state !== expectedState || !verifier) {
+        status.textContent = error ? `Sign-in failed: ${error}` : "The sign-in response could not be verified. Please try again.";
+        return;
+      }
+
+      try {
+        const tokenUrl = new URL("/oauth2/token", config.hostedUiDomain);
+        const body = new URLSearchParams({
+          grant_type: "authorization_code",
+          client_id: config.clientId,
+          code,
+          redirect_uri: config.redirectUri,
+          code_verifier: verifier
+        });
+        const response = await fetch(tokenUrl, {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          body
+        });
+        const tokens = await response.json();
+        if (!response.ok || !tokens.id_token || !tokens.access_token) {
+          throw new Error(tokens.error_description || "Token exchange failed");
+        }
+        sessionStorage.setItem("mswg_rr_id_token", tokens.id_token);
+        sessionStorage.setItem("mswg_rr_access_token", tokens.access_token);
+        sessionStorage.removeItem("mswg_rr_oauth_state");
+        sessionStorage.removeItem("mswg_rr_pkce_verifier");
+        window.location.replace("../../shared/portal/index.html");
+      } catch (exchangeError) {
+        status.textContent = `Sign-in could not be completed: ${exchangeError.message}`;
+      }
+    })();
+  </script>
+</body>
+</html>
