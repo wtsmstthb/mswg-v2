@@ -2,7 +2,7 @@
 
 const WORKSPACE_ITEMS = [
   {
-    href: "../portal/index.html",
+    href: "../../shared/portal/index.html",
     label: "Portal home",
     icon: "⌂",
     key: "portal"
@@ -17,13 +17,13 @@ const WORKSPACE_ITEMS = [
 
 const OTHER_PLATFORM_ITEMS = [
   {
-    href: "../agm-conduct/landingpage.html",
+    href: "../../AGM/frontend/landingpage.html",
     label: "AGM",
     icon: "✓",
     key: "agm"
   },
   {
-    href: "../risk-register/dashboard.html",
+    href: "../../RISKREGISTER/frontend/dashboard.html",
     label: "Risk Register",
     icon: "◇",
     key: "risk-register"
