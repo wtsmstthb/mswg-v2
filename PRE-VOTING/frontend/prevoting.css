@@ -66,6 +66,7 @@
 
 
 .main {
+  flex: 1;
   min-width: 0;
 }
 
@@ -77,6 +78,17 @@
 
   padding:
     23px 22px 42px;
+}
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  min-height: 100vh;
 }
 
 
@@ -1260,77 +1272,6 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
-/* =========================================
-   PRINT BUTTON
-========================================= */
-
-.print-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-
-  min-height: 40px;
-  padding: 9px 16px;
-
-  background: var(--surface, #ffffff);
-  color: var(--navy, #17233d);
-
-  border: 1px solid var(--border, #dbe2ee);
-  border-radius: 10px;
-
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  box-shadow: 0 1px 2px rgba(23, 35, 61, 0.05);
-
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
-}
-
-
-/* Hover */
-.print-btn:hover {
-  background: var(--blue-soft, #edf3ff);
-  border-color: var(--blue, #2f6fed);
-  color: var(--blue, #2f6fed);
-
-  box-shadow: 0 2px 6px rgba(47, 111, 237, 0.10);
-}
-
-
-/* Click */
-.print-btn:active {
-  transform: translateY(1px);
-  box-shadow: none;
-}
-
-
-/* Keyboard accessibility */
-.print-btn:focus-visible {
-  outline: 3px solid rgba(47, 111, 237, 0.18);
-  outline-offset: 2px;
-  border-color: var(--blue, #2f6fed);
-}
-
-
-/* Icon */
-.print-btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 16px;
-  line-height: 1;
-}
-
 
 /* =========================================================
    EMPTY RESOLUTION STATE
@@ -1448,233 +1389,6 @@ textarea:focus-visible {
   margin-left: auto;
 }
 
-/* =========================================
-   PRINT VOTE RESULT
-========================================= */
-
-/* Hide the text version on the normal webpage */
-.print-vote-row {
-  display: none;
-}
-
-
-/* =========================================
-   PRINT / PDF PAGE
-========================================= */
-
-@page {
-  size: A4 portrait;
-  margin: 14mm;
-}
-
-
-@media print {
-
-  /* Hide app/navigation controls */
-  .sidebar,
-  .sidebar-toggle,
-  .topbar,
-  .page-header-actions,
-  .retrieve-section,
-  .form-actions,
-  #printBtn,
-  #retrieveBtn,
-  #clearBtn,
-  #draftBtn,
-  #submitBtn,
-  .status-message {
-    display: none !important;
-  }
-
-
-  /* Show selected vote */
-  .print-vote-row {
-    display: block !important;
-
-    margin-bottom: 6px;
-
-    font-size: 8.5pt;
-    font-weight: 600;
-  }
-
-  .print-vote-result {
-    display: inline !important;
-
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-
-  /* Full printable width */
-  body,
-  .main,
-  .content {
-    width: 100% !important;
-    max-width: none !important;
-
-    margin: 0 !important;
-    padding: 0 !important;
-
-    background: #ffffff !important;
-  }
-
-
-  /* Remove web card appearance */
-  .card {
-    box-shadow: none !important;
-    border: none !important;
-    border-radius: 0 !important;
-
-    background: #ffffff !important;
-
-    padding: 0 !important;
-    margin-bottom: 18px !important;
-  }
-
-
-  /* Meeting information */
-  .meeting-information-grid {
-    display: grid !important;
-
-    grid-template-columns:
-      1fr 1fr !important;
-
-    gap: 8px 16px !important;
-  }
-
-
-  .meeting-field.full {
-    grid-column:
-      1 / -1 !important;
-  }
-
-
-  .meeting-field {
-    padding:
-      6px 0 !important;
-
-    border-bottom:
-      1px solid #dce3ee !important;
-  }
-
-
-  .meeting-field-label {
-    font-size:
-      8pt !important;
-
-    font-weight:
-      600 !important;
-
-    text-transform:
-      uppercase;
-  }
-
-
-  .meeting-field-value {
-    font-size:
-      10pt !important;
-  }
-
-
-  /* Resolution table */
-  .resolution-table-wrap {
-    overflow:
-      visible !important;
-  }
-
-
-  table {
-    width:
-      100% !important;
-
-    border-collapse:
-      collapse !important;
-
-    font-size:
-      8.5pt !important;
-  }
-
-
-  thead {
-    display:
-      table-header-group;
-  }
-
-
-  th,
-  td {
-    border:
-      1px solid #dce3ee !important;
-
-    padding:
-      6px !important;
-
-    vertical-align:
-      top !important;
-  }
-
-
-  th {
-    background:
-      #f3f6fa !important;
-
-    font-weight:
-      700 !important;
-  }
-
-
-  tr {
-    break-inside:
-      avoid !important;
-
-    page-break-inside:
-      avoid !important;
-  }
-
-
-  /* Remarks */
-  .remarks-wrapper[hidden] {
-    display:
-      none !important;
-  }
-
-
-  .remarks-wrapper {
-    display:
-      block !important;
-
-    background:
-      transparent !important;
-
-    border:
-      none !important;
-
-    padding:
-      0 !important;
-  }
-
-
-  .resolution-remarks {
-    display:
-      block !important;
-
-    width:
-      100% !important;
-
-    min-height:
-      40px !important;
-
-    resize:
-      none !important;
-  }
-
-
-  .remarks-error {
-    display:
-      none !important;
-  }
-
-}
 
 /* =========================================================
    RESPONSIVE LAYOUT

@@ -406,15 +406,6 @@ function renderResolutions(
 
               <!-- REMARKS -->
               <td class="remarks-cell">
-
-                <!-- PRINT ONLY: SELECTED VOTE -->
-                  <div class="print-vote-row">
-                    Vote:
-                    <span
-                      class="print-vote-result"
-                      data-print-vote="${index}"
-                    ></span>
-                  </div>
                   
                 <div
                   class="remarks-wrapper"
@@ -488,30 +479,6 @@ function attachVoteEvents() {
 
         const index =
           this.dataset.index;
-
-
-        // PRINT ONLY: UPDATE SELECTED VOTE
-        const printVote =
-          document.querySelector(
-            `[data-print-vote="${index}"]`
-          );
-
-        if (printVote) {
-
-          if (this.value === "for") {
-            printVote.textContent = "FOR";
-          }
-
-          else if (this.value === "against") {
-            printVote.textContent = "AGAINST";
-          }
-
-          else if (this.value === "abstain") {
-            printVote.textContent = "ABSTAIN";
-          }
-
-        }
-
 
         const remarksWrapper =
           document.querySelector(
@@ -1159,6 +1126,7 @@ async function submitVotes() {
       `Submission ID: ${result.submission_id}`
     );
 
+    window.location.href = `history.html?id=${result.submission_id}`;
 
   } catch (error) {
 
@@ -1243,20 +1211,6 @@ document.addEventListener(
         }
       );
 
-      /*
-      -------------------------------------------------------
-      PRINT BUTTON
-      -------------------------------------------------------
-      */
-
-      const printBtn =
-      document.getElementById("printBtn");
-
-      if (printBtn) {
-        printBtn.addEventListener("click", () => {
-          window.print();
-        });
-      }
 
     /*
     -------------------------------------------------------

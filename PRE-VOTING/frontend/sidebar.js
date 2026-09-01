@@ -12,6 +12,12 @@ const WORKSPACE_ITEMS = [
     label: "Pre-Voting",
     icon: "◎",
     key: "pre-voting"
+  },
+  {
+    href: "./history.html",
+    label: "Pre-Voting History",
+    icon: "⧉",
+    key: "pre-voting-history"
   }
 ];
 
