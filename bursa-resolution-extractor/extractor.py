@@ -243,7 +243,6 @@ def extract_bursa_notice(url):
             meeting_date = ""
             meeting_time = ""
             meeting_venue = ""
-            record_of_depositors = ""
 
 
             resolution_section_index = (
@@ -362,30 +361,15 @@ def extract_bursa_notice(url):
                     )
 
 
-                elif (
-                    normalized
-                    .lower()
-                    .startswith(
-                        "date of general meeting record of depositors"
-                    )
-                ):
-
-                    record_of_depositors = (
-                        _remove_label(
-                            text,
-                            [
-                                "Date of General Meeting Record of Depositors"
-                            ]
-                        )
-                    )
-
-
             # -----------------------------------------
             # ORDINARY RESOLUTIONS
             # -----------------------------------------
 
             resolutions = []
 
+            # Used to prevent the same Ordinary Resolution number from being added multiple times.
+            seen_resolution_numbers = set()
+        
 
             for i in range(
                 resolution_section_index + 1,
@@ -396,13 +380,15 @@ def extract_bursa_notice(url):
                     row_texts[i]
                 )
 
-
-                match = re.search(
-                    r"\bOrdinary\s+Resolution\s+(\d+)\b",
-                    text,
-                    re.IGNORECASE
+                normalized = " ".join(
+                    text.split()
                 )
 
+                match = re.match(
+                r"^\d+\.\s+Ordinary\s+Resolution\s+(\d+)\s*$",
+                normalized,
+                re.IGNORECASE
+                )   
 
                 if not match:
 
@@ -413,6 +399,15 @@ def extract_bursa_notice(url):
                     int(
                         match.group(1)
                     )
+                )
+
+                # Prevent duplicates.
+                if resolution_number in seen_resolution_numbers:
+                    continue
+
+
+                seen_resolution_numbers.add(
+                    resolution_number
                 )
 
 
@@ -492,18 +487,22 @@ def extract_bursa_notice(url):
                         )
 
 
-                resolutions.append(
-                    {
-                        "number":
-                            resolution_number,
+                # Do not send empty/false resolution rows
+                # to the frontend.
+                if description or shareholder_action:
 
-                        "description":
-                            description,
+                    resolutions.append(
+                        {
+                            "number":
+                                resolution_number,
 
-                        "shareholder_action":
-                            shareholder_action
-                    }
-                )
+                            "description":
+                                description,
+
+                            "shareholder_action":
+                                shareholder_action
+                        }
+                    )
 
 
             # -----------------------------------------
@@ -529,9 +528,6 @@ def extract_bursa_notice(url):
 
                 "meeting_venue":
                     meeting_venue,
-
-                "record_of_depositors":
-                    record_of_depositors,
 
                 "resolutions":
                     resolutions

@@ -407,6 +407,15 @@ function renderResolutions(
               <!-- REMARKS -->
               <td class="remarks-cell">
 
+                <!-- PRINT ONLY: SELECTED VOTE -->
+                  <div class="print-vote-row">
+                    Vote:
+                    <span
+                      class="print-vote-result"
+                      data-print-vote="${index}"
+                    ></span>
+                  </div>
+                  
                 <div
                   class="remarks-wrapper"
                   data-remarks-index="${index}"
@@ -1182,7 +1191,20 @@ document.addEventListener(
         }
       );
 
+      /*
+      -------------------------------------------------------
+      PRINT BUTTON
+      -------------------------------------------------------
+      */
 
+      const printBtn =
+      document.getElementById("printBtn");
+
+      if (printBtn) {
+        printBtn.addEventListener("click", () => {
+          window.print();
+        });
+      }
 
     /*
     -------------------------------------------------------

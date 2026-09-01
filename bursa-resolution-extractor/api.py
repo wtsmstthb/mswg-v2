@@ -12,6 +12,7 @@ app = FastAPI(
 # To run the API server, use the following command in the terminal:
 # python -m uvicorn api:app --reload --port 8000  bursa-resolution-extractor folder to run the API server
 # python -m http.server 8080 in the pre-voting folder to run the front-end server
+# Test on http://localhost:8080/Frontend/pre-voting/index.html
 
 app.add_middleware(
     CORSMiddleware,
