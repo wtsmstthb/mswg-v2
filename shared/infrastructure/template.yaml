@@ -1,0 +1,807 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Repeatable infrastructure for the MSWG Risk Register and Conduct of AGM applications.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+  BudgetAlertEmail:
+    Type: String
+    Default: ""
+    Description: Finance or owner email. Leave blank to skip the budget notification resource.
+  AlarmEmail:
+    Type: String
+    Default: ""
+    Description: Technical operations email. Leave blank to create the topic without a subscription.
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 10
+  DomainName:
+    Type: String
+    Default: ""
+    Description: Optional custom domain, for example risk.mswg.org.my.
+  CloudFrontCertificateArn:
+    Type: String
+    Default: ""
+    Description: Optional ACM certificate ARN from us-east-1 for the CloudFront domain.
+
+Conditions:
+  IsProduction: !Equals [!Ref EnvironmentName, prod]
+  HasBudgetEmail: !Not [!Equals [!Ref BudgetAlertEmail, ""]]
+  HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
+  HasCustomDomain: !And
+    - !Not [!Equals [!Ref DomainName, ""]]
+    - !Not [!Equals [!Ref CloudFrontCertificateArn, ""]]
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    Timeout: 10
+    MemorySize: 256
+    Tracing: Active
+    Environment:
+      Variables:
+        APP_ENV: !Ref EnvironmentName
+        RISK_TABLE_NAME: !Ref RiskTable
+        HISTORY_TABLE_NAME: !Ref RiskHistoryTable
+        AGM_ASSESSMENT_TABLE_NAME: !Ref AgmAssessmentTable
+        AGM_HISTORY_TABLE_NAME: !Ref AgmHistoryTable
+        DEPARTMENT_GROUP_PREFIX: rr-dept-
+  HttpApi:
+    CorsConfiguration:
+      AllowHeaders: [Authorization, Content-Type]
+      AllowMethods: [GET, POST, PATCH, OPTIONS]
+      AllowOrigins: ["*"]
+      MaxAge: 600
+
+Resources:
+  RiskUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub mswg-shared-users-${EnvironmentName}
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 7
+      Schema:
+        - Name: department_id
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "2"
+            MaxLength: "40"
+        - Name: application_role
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "2"
+            MaxLength: "60"
+      UserPoolTags:
+        Application: mswg-rr
+        Environment: !Ref EnvironmentName
+
+  RiskUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub mswg-rr-web-${EnvironmentName}
+      UserPoolId: !Ref RiskUserPool
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      RefreshTokenValidity: 1
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      SupportedIdentityProviders: [COGNITO]
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      CallbackURLs:
+        - !If
+          - HasCustomDomain
+          - !Sub https://${DomainName}/callback.html
+          - !Sub https://${FrontendDistribution.DomainName}/callback.html
+      LogoutURLs:
+        - !If
+          - HasCustomDomain
+          - !Sub https://${DomainName}/login.html
+          - !Sub https://${FrontendDistribution.DomainName}/login.html
+
+  RiskUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub mswg-rr-${EnvironmentName}-${AWS::AccountId}
+      UserPoolId: !Ref RiskUserPool
+
+  AppUsersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: rr-app-users
+      Description: Base Risk Register application entitlement.
+      UserPoolId: !Ref RiskUserPool
+  DepartmentHeadsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: rr-department-heads
+      Description: Department-head role marker.
+      UserPoolId: !Ref RiskUserPool
+  FullVisibilityGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: rr-viewers-all
+      Description: Cross-department read and archive permission.
+      UserPoolId: !Ref RiskUserPool
+  AccountAdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: rr-account-admins
+      Description: Optional account-administration marker.
+      UserPoolId: !Ref RiskUserPool
+
+  AgmAppUsersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: agm-app-users
+      Description: Base Conduct of AGM application entitlement.
+      UserPoolId: !Ref RiskUserPool
+  AgmAssessorsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: agm-assessors
+      Description: Corporate Monitoring users who create and submit AGM assessments.
+      UserPoolId: !Ref RiskUserPool
+  AgmReviewersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: agm-reviewers
+      Description: HOD users who return, approve, or reopen AGM assessments.
+      UserPoolId: !Ref RiskUserPool
+
+  CeoOfficeGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties: { GroupName: rr-dept-ceo-office, UserPoolId: !Ref RiskUserPool }
+  CorporateMonitoringGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties: { GroupName: rr-dept-corp-monitoring, UserPoolId: !Ref RiskUserPool }
+  CorporateGovernanceGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties: { GroupName: rr-dept-corp-governance, UserPoolId: !Ref RiskUserPool }
+  CorporateResourcesGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties: { GroupName: rr-dept-corp-resources, UserPoolId: !Ref RiskUserPool }
+  FinanceAdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties: { GroupName: rr-dept-finance-admin, UserPoolId: !Ref RiskUserPool }
+  ItTrainingGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties: { GroupName: rr-dept-it-training, UserPoolId: !Ref RiskUserPool }
+  CreativeCommsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties: { GroupName: rr-dept-creative-comms, UserPoolId: !Ref RiskUserPool }
+  ProfessionalDevelopmentGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties: { GroupName: rr-dept-prof-development, UserPoolId: !Ref RiskUserPool }
+
+  RiskTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub mswg-rr-${EnvironmentName}-risks
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: dept_id, AttributeType: S }
+        - { AttributeName: risk_id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: dept_id, KeyType: HASH }
+        - { AttributeName: risk_id, KeyType: RANGE }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProduction, true, false]
+      DeletionProtectionEnabled: !If [IsProduction, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - { Key: Application, Value: mswg-rr }
+        - { Key: Environment, Value: !Ref EnvironmentName }
+
+  RiskHistoryTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub mswg-rr-${EnvironmentName}-history
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: risk_id, AttributeType: S }
+        - { AttributeName: changed_at, AttributeType: S }
+      KeySchema:
+        - { AttributeName: risk_id, KeyType: HASH }
+        - { AttributeName: changed_at, KeyType: RANGE }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProduction, true, false]
+      DeletionProtectionEnabled: !If [IsProduction, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - { Key: Application, Value: mswg-rr }
+        - { Key: Environment, Value: !Ref EnvironmentName }
+
+  AgmAssessmentTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub mswg-agm-${EnvironmentName}-assessments
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: assessment_id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: assessment_id, KeyType: HASH }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProduction, true, false]
+      DeletionProtectionEnabled: !If [IsProduction, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - { Key: Application, Value: mswg-agm }
+        - { Key: Environment, Value: !Ref EnvironmentName }
+
+  AgmHistoryTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub mswg-agm-${EnvironmentName}-history
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: assessment_id, AttributeType: S }
+        - { AttributeName: event_at, AttributeType: S }
+      KeySchema:
+        - { AttributeName: assessment_id, KeyType: HASH }
+        - { AttributeName: event_at, KeyType: RANGE }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProduction, true, false]
+      DeletionProtectionEnabled: !If [IsProduction, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - { Key: Application, Value: mswg-agm }
+        - { Key: Environment, Value: !Ref EnvironmentName }
+
+  RiskApiAccessLogs:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName: !Sub /aws/http-api/mswg-rr-${EnvironmentName}
+      RetentionInDays: !If [IsProduction, 90, 30]
+
+  RiskApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref EnvironmentName
+      AccessLogSettings:
+        DestinationArn: !GetAtt RiskApiAccessLogs.Arn
+        Format: >-
+          {"requestId":"$context.requestId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","routeKey":"$context.routeKey","status":"$context.status","responseLength":"$context.responseLength","integrationError":"$context.integrationErrorMessage"}
+      DefaultRouteSettings:
+        DetailedMetricsEnabled: true
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+      Auth:
+        DefaultAuthorizer: CognitoJwtAuthorizer
+        Authorizers:
+          CognitoJwtAuthorizer:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              audience:
+                - !Ref RiskUserPoolClient
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${RiskUserPool}
+
+  CreateRiskFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-rr-${EnvironmentName}-create-risk
+      CodeUri: ../../RISKREGISTER/backend
+      Handler: createRisk.handler
+      Policies:
+        - DynamoDBWritePolicy: { TableName: !Ref RiskTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /risks, Method: POST }
+
+  GetDepartmentRisksFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-rr-${EnvironmentName}-get-department-risks
+      CodeUri: ../../RISKREGISTER/backend
+      Handler: getRisksByDept.handler
+      Policies:
+        - DynamoDBReadPolicy: { TableName: !Ref RiskTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /risks, Method: GET }
+
+  GetAllRisksFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-rr-${EnvironmentName}-get-all-risks
+      CodeUri: ../../RISKREGISTER/backend
+      Handler: getAllRisksForExec.handler
+      Policies:
+        - DynamoDBReadPolicy: { TableName: !Ref RiskTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /risks/all, Method: GET }
+
+  UpdateRiskFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-rr-${EnvironmentName}-update-risk
+      CodeUri: ../../RISKREGISTER/backend
+      Handler: updateRisk.handler
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref RiskTable }
+        - DynamoDBWritePolicy: { TableName: !Ref RiskHistoryTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /risks/{riskId}, Method: PATCH }
+
+  GetRiskHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-rr-${EnvironmentName}-get-risk-history
+      CodeUri: ../../RISKREGISTER/backend
+      Handler: getRiskHistory.handler
+      Policies:
+        - DynamoDBReadPolicy: { TableName: !Ref RiskHistoryTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /risks/{riskId}/history, Method: GET }
+
+  ArchiveRiskFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-rr-${EnvironmentName}-archive-risk
+      CodeUri: ../../RISKREGISTER/backend
+      Handler: archiveRisk.handler
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref RiskTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /risks/{departmentId}/{riskId}/archive, Method: POST }
+
+  CreateAgmAssessmentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-agm-${EnvironmentName}-create-assessment
+      CodeUri: ../../AGM/backend
+      Handler: createAssessment.handler
+      Policies:
+        - DynamoDBWritePolicy: { TableName: !Ref AgmAssessmentTable }
+        - DynamoDBWritePolicy: { TableName: !Ref AgmHistoryTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /agm/assessments, Method: POST }
+
+  ListAgmAssessmentsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-agm-${EnvironmentName}-list-assessments
+      CodeUri: ../../AGM/backend
+      Handler: listAssessments.handler
+      Policies:
+        - DynamoDBReadPolicy: { TableName: !Ref AgmAssessmentTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /agm/assessments, Method: GET }
+
+  GetAgmAssessmentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-agm-${EnvironmentName}-get-assessment
+      CodeUri: ../../AGM/backend
+      Handler: getAssessment.handler
+      Policies:
+        - DynamoDBReadPolicy: { TableName: !Ref AgmAssessmentTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /agm/assessments/{assessmentId}, Method: GET }
+
+  SaveAgmAssessmentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-agm-${EnvironmentName}-save-assessment
+      CodeUri: ../../AGM/backend
+      Handler: saveAssessment.handler
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref AgmAssessmentTable }
+        - DynamoDBWritePolicy: { TableName: !Ref AgmHistoryTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /agm/assessments/{assessmentId}, Method: PATCH }
+
+  SubmitAgmAssessmentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-agm-${EnvironmentName}-submit-assessment
+      CodeUri: ../../AGM/backend
+      Handler: submitAssessment.handler
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref AgmAssessmentTable }
+        - DynamoDBWritePolicy: { TableName: !Ref AgmHistoryTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /agm/assessments/{assessmentId}/submit, Method: POST }
+
+  ReviewAgmAssessmentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-agm-${EnvironmentName}-review-assessment
+      CodeUri: ../../AGM/backend
+      Handler: reviewAssessment.handler
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref AgmAssessmentTable }
+        - DynamoDBWritePolicy: { TableName: !Ref AgmHistoryTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /agm/assessments/{assessmentId}/review, Method: POST }
+
+  ReopenAgmAssessmentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-agm-${EnvironmentName}-reopen-assessment
+      CodeUri: ../../AGM/backend
+      Handler: reopenAssessment.handler
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref AgmAssessmentTable }
+        - DynamoDBWritePolicy: { TableName: !Ref AgmHistoryTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /agm/assessments/{assessmentId}/reopen, Method: POST }
+
+  GetAgmAssessmentHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub mswg-agm-${EnvironmentName}-get-history
+      CodeUri: ../../AGM/backend
+      Handler: getAssessmentHistory.handler
+      Policies:
+        - DynamoDBReadPolicy: { TableName: !Ref AgmAssessmentTable }
+        - DynamoDBReadPolicy: { TableName: !Ref AgmHistoryTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: { ApiId: !Ref RiskApi, Path: /agm/assessments/{assessmentId}/history, Method: GET }
+
+  CreateRiskLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${CreateRiskFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  GetDepartmentRisksLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${GetDepartmentRisksFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  GetAllRisksLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${GetAllRisksFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  UpdateRiskLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${UpdateRiskFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  GetRiskHistoryLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${GetRiskHistoryFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  ArchiveRiskLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${ArchiveRiskFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  CreateAgmAssessmentLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${CreateAgmAssessmentFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  ListAgmAssessmentsLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${ListAgmAssessmentsFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  GetAgmAssessmentLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${GetAgmAssessmentFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  SaveAgmAssessmentLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${SaveAgmAssessmentFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  SubmitAgmAssessmentLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${SubmitAgmAssessmentFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  ReviewAgmAssessmentLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${ReviewAgmAssessmentFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  ReopenAgmAssessmentLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${ReopenAgmAssessmentFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+  GetAgmAssessmentHistoryLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${GetAgmAssessmentHistoryFunction}", RetentionInDays: !If [IsProduction, 90, 30] }
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub mswg-rr-${EnvironmentName}-alarms
+      Tags:
+        - { Key: Application, Value: mswg-rr }
+  AlarmEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlarmEmail
+    Properties:
+      Protocol: email
+      Endpoint: !Ref AlarmEmail
+      TopicArn: !Ref AlarmTopic
+
+  ApiServerErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub mswg-rr-${EnvironmentName}-api-5xx
+      AlarmDescription: API Gateway has returned server errors.
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions:
+        - { Name: ApiId, Value: !Ref RiskApi }
+        - { Name: Stage, Value: !Ref EnvironmentName }
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  LambdaErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub mswg-rr-${EnvironmentName}-lambda-errors
+      AlarmDescription: One or more RR Lambda functions returned an error.
+      Metrics:
+        - Id: createErrors
+          MetricStat:
+            Metric: { Namespace: AWS/Lambda, MetricName: Errors, Dimensions: [{ Name: FunctionName, Value: !Ref CreateRiskFunction }] }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: updateErrors
+          MetricStat:
+            Metric: { Namespace: AWS/Lambda, MetricName: Errors, Dimensions: [{ Name: FunctionName, Value: !Ref UpdateRiskFunction }] }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: archiveErrors
+          MetricStat:
+            Metric: { Namespace: AWS/Lambda, MetricName: Errors, Dimensions: [{ Name: FunctionName, Value: !Ref ArchiveRiskFunction }] }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: agmCreateErrors
+          MetricStat:
+            Metric: { Namespace: AWS/Lambda, MetricName: Errors, Dimensions: [{ Name: FunctionName, Value: !Ref CreateAgmAssessmentFunction }] }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: agmSaveErrors
+          MetricStat:
+            Metric: { Namespace: AWS/Lambda, MetricName: Errors, Dimensions: [{ Name: FunctionName, Value: !Ref SaveAgmAssessmentFunction }] }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: agmSubmitErrors
+          MetricStat:
+            Metric: { Namespace: AWS/Lambda, MetricName: Errors, Dimensions: [{ Name: FunctionName, Value: !Ref SubmitAgmAssessmentFunction }] }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: agmReviewErrors
+          MetricStat:
+            Metric: { Namespace: AWS/Lambda, MetricName: Errors, Dimensions: [{ Name: FunctionName, Value: !Ref ReviewAgmAssessmentFunction }] }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: agmReopenErrors
+          MetricStat:
+            Metric: { Namespace: AWS/Lambda, MetricName: Errors, Dimensions: [{ Name: FunctionName, Value: !Ref ReopenAgmAssessmentFunction }] }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: totalErrors
+          Expression: createErrors + updateErrors + archiveErrors + agmCreateErrors + agmSaveErrors + agmSubmitErrors + agmReviewErrors + agmReopenErrors
+          Label: Total RR and AGM mutating-function errors
+          ReturnData: true
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub mswg-rr-${EnvironmentName}-web-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      VersioningConfiguration: { Status: Enabled }
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      Tags:
+        - { Key: Application, Value: mswg-rr }
+        - { Key: Environment, Value: !Ref EnvironmentName }
+
+  FrontendOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub mswg-rr-${EnvironmentName}-oac
+        Description: Signed CloudFront access to the private RR frontend bucket.
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub MSWG RR ${EnvironmentName}
+        DefaultRootObject: dashboard.html
+        HttpVersion: http2and3
+        PriceClass: PriceClass_200
+        Origins:
+          - Id: frontend-s3
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !Ref FrontendOriginAccessControl
+            S3OriginConfig: { OriginAccessIdentity: "" }
+        DefaultCacheBehavior:
+          TargetOriginId: frontend-s3
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03
+        Aliases: !If [HasCustomDomain, [!Ref DomainName], !Ref AWS::NoValue]
+        ViewerCertificate: !If
+          - HasCustomDomain
+          - AcmCertificateArn: !Ref CloudFrontCertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+      Tags:
+        - { Key: Application, Value: mswg-rr }
+        - { Key: Environment, Value: !Ref EnvironmentName }
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontReadOnly
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub ${FrontendBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}
+
+  MonthlyCostBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasBudgetEmail
+    Properties:
+      Budget:
+        BudgetName: !Sub mswg-rr-${EnvironmentName}-monthly
+        BudgetLimit: { Amount: !Ref MonthlyBudgetUsd, Unit: USD }
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        CostFilters:
+          TagKeyValue:
+            - user:Application$mswg-rr
+      NotificationsWithSubscribers:
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: FORECASTED
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - { SubscriptionType: EMAIL, Address: !Ref BudgetAlertEmail }
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - { SubscriptionType: EMAIL, Address: !Ref BudgetAlertEmail }
+
+Outputs:
+  ApiBaseUrl:
+    Value: !Sub https://${RiskApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${EnvironmentName}
+  UserPoolId:
+    Value: !Ref RiskUserPool
+  UserPoolClientId:
+    Value: !Ref RiskUserPoolClient
+  CognitoHostedUiDomain:
+    Value: !Sub https://${RiskUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com
+  CognitoRedirectUri:
+    Value: !If
+      - HasCustomDomain
+      - !Sub https://${DomainName}/callback.html
+      - !Sub https://${FrontendDistribution.DomainName}/callback.html
+  CognitoLogoutUri:
+    Value: !If
+      - HasCustomDomain
+      - !Sub https://${DomainName}/login.html
+      - !Sub https://${FrontendDistribution.DomainName}/login.html
+  FrontendBucketName:
+    Value: !Ref FrontendBucket
+  CloudFrontDistributionId:
+    Value: !Ref FrontendDistribution
+  CloudFrontDomainName:
+    Value: !GetAtt FrontendDistribution.DomainName
+  RiskTableName:
+    Value: !Ref RiskTable
+  HistoryTableName:
+    Value: !Ref RiskHistoryTable
+  AgmAssessmentTableName:
+    Value: !Ref AgmAssessmentTable
+  AgmHistoryTableName:
+    Value: !Ref AgmHistoryTable
