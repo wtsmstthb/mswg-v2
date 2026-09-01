@@ -1453,7 +1453,7 @@ textarea:focus-visible {
 ========================================= */
 
 /* Hide the text version on the normal webpage */
-.print-vote-result {
+.print-vote-row {
   display: none;
 }
 
@@ -1466,6 +1466,7 @@ textarea:focus-visible {
   size: A4 portrait;
   margin: 14mm;
 }
+
 
 @media print {
 
@@ -1486,157 +1487,194 @@ textarea:focus-visible {
   }
 
 
-  /* Show selected vote as text in PDF */
+  /* Show selected vote */
+  .print-vote-row {
+    display: block !important;
+
+    margin-bottom: 6px;
+
+    font-size: 8.5pt;
+    font-weight: 600;
+  }
+
   .print-vote-result {
-    display: inline-block !important;
+    display: inline !important;
+
     font-weight: 700;
     text-transform: uppercase;
   }
 
 
-  /* Let main content use full page */
+  /* Full printable width */
   body,
-  .shell,
   .main,
-  .main-content,
-  .content,
-  .page-content {
+  .content {
     width: 100% !important;
     max-width: none !important;
+
     margin: 0 !important;
     padding: 0 !important;
+
     background: #ffffff !important;
   }
 
 
-  /* Show only the sections we want */
-  .meeting-card,
-  .resolutions-card {
-    display: block !important;
-  }
-
-
-  /* Remove web-card decoration */
-  .meeting-card,
-  .resolutions-card,
+  /* Remove web card appearance */
   .card {
     box-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;
+
     background: #ffffff !important;
+
     padding: 0 !important;
     margin-bottom: 18px !important;
   }
 
 
   /* Meeting information */
-  .meeting-info-grid {
+  .meeting-information-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+
+    grid-template-columns:
+      1fr 1fr !important;
+
     gap: 8px 16px !important;
   }
 
+
   .meeting-field.full {
-    grid-column: 1 / -1 !important;
+    grid-column:
+      1 / -1 !important;
   }
+
 
   .meeting-field {
-    padding: 6px 0 !important;
-    border-bottom: 1px solid #dce3ee !important;
+    padding:
+      6px 0 !important;
+
+    border-bottom:
+      1px solid #dce3ee !important;
   }
+
 
   .meeting-field-label {
-    font-size: 8pt !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
+    font-size:
+      8pt !important;
+
+    font-weight:
+      600 !important;
+
+    text-transform:
+      uppercase;
   }
 
+
   .meeting-field-value {
-    font-size: 10pt !important;
+    font-size:
+      10pt !important;
   }
 
 
   /* Resolution table */
-  .resolution-table-wrapper,
-  .table-wrapper {
-    overflow: visible !important;
+  .resolution-table-wrap {
+    overflow:
+      visible !important;
   }
+
 
   table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    font-size: 8.5pt !important;
+    width:
+      100% !important;
+
+    border-collapse:
+      collapse !important;
+
+    font-size:
+      8.5pt !important;
   }
 
+
   thead {
-    display: table-header-group;
+    display:
+      table-header-group;
   }
+
 
   th,
   td {
-    border: 1px solid #dce3ee !important;
-    padding: 6px !important;
-    vertical-align: top !important;
+    border:
+      1px solid #dce3ee !important;
+
+    padding:
+      6px !important;
+
+    vertical-align:
+      top !important;
   }
+
 
   th {
-    background: #f3f6fa !important;
-    font-weight: 700 !important;
+    background:
+      #f3f6fa !important;
+
+    font-weight:
+      700 !important;
   }
+
 
   tr {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
+    break-inside:
+      avoid !important;
 
-  .resolution-title {
-    font-weight: 700 !important;
-    margin-bottom: 4px !important;
-  }
-
-  .resolution-text {
-    line-height: 1.45 !important;
+    page-break-inside:
+      avoid !important;
   }
 
 
   /* Remarks */
   .remarks-wrapper[hidden] {
-    display: none !important;
+    display:
+      none !important;
   }
+
 
   .remarks-wrapper {
-    display: block !important;
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
+    display:
+      block !important;
+
+    background:
+      transparent !important;
+
+    border:
+      none !important;
+
+    padding:
+      0 !important;
   }
 
-  .remarks-label {
-    font-weight: 600 !important;
-    margin-bottom: 4px !important;
-  }
 
   .resolution-remarks {
-    display: block !important;
-    width: 100% !important;
-    min-height: 40px !important;
+    display:
+      block !important;
 
-    border: 1px solid #cfd7e3 !important;
-    background: #ffffff !important;
+    width:
+      100% !important;
 
-    font-family: inherit !important;
-    font-size: 8.5pt !important;
+    min-height:
+      40px !important;
 
-    resize: none !important;
-    box-sizing: border-box !important;
+    resize:
+      none !important;
   }
 
+
   .remarks-error {
-    display: none !important;
+    display:
+      none !important;
   }
 
 }
-
 
 /* =========================================================
    RESPONSIVE LAYOUT

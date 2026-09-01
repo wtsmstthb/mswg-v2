@@ -458,7 +458,6 @@ function renderResolutions(
 }
 
 
-
 /*
 =========================================================
 VOTE BEHAVIOUR
@@ -489,6 +488,30 @@ function attachVoteEvents() {
 
         const index =
           this.dataset.index;
+
+
+        // PRINT ONLY: UPDATE SELECTED VOTE
+        const printVote =
+          document.querySelector(
+            `[data-print-vote="${index}"]`
+          );
+
+        if (printVote) {
+
+          if (this.value === "for") {
+            printVote.textContent = "FOR";
+          }
+
+          else if (this.value === "against") {
+            printVote.textContent = "AGAINST";
+          }
+
+          else if (this.value === "abstain") {
+            printVote.textContent = "ABSTAIN";
+          }
+
+        }
+
 
         const remarksWrapper =
           document.querySelector(
@@ -559,7 +582,6 @@ function attachVoteEvents() {
   });
 
 }
-
 
 /*
 =========================================================
@@ -1027,10 +1049,6 @@ function collectVotes() {
       currentMeeting.meeting_venue,
 
 
-    record_of_depositors:
-      currentMeeting.record_of_depositors,
-
-
     votes:
       votes,
 
@@ -1046,7 +1064,6 @@ function collectVotes() {
   };
 
 }
-
 
 
 /*
@@ -1094,34 +1111,69 @@ SUBMIT VOTES
 =========================================================
 */
 
-function submitVotes() {
+async function submitVotes() {
 
-  const result =
-    collectVotes();
+  const submissionData = collectVotes();
 
-
-  if (!result) {
-
+  if (!submissionData) {
     return;
-
   }
 
+  try {
 
-  console.log(
-    "Pre-Voting Submission:",
-    result
-  );
+    const response = await fetch(
+      "http://127.0.0.1:8000/api/pre-voting/submit",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(submissionData)
+      }
+    );
 
 
-  /*
-    Later this can call:
+    const result = await response.json();
 
-    POST /api/pre-voting/submit
-  */
 
-  alert(
-    "Votes validated successfully. Submission API will be connected later."
-  );
+    if (!response.ok) {
+
+      throw new Error(
+        result.detail ||
+        "Failed to submit pre-voting."
+      );
+
+    }
+
+
+    console.log(
+      "Submission successful:",
+      result
+    );
+
+
+    alert(
+      `Pre-voting submitted successfully.\n` +
+      `Submission ID: ${result.submission_id}`
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Submission error:",
+      error
+    );
+
+
+    alert(
+      `Unable to submit pre-voting.\n\n` +
+      error.message
+    );
+
+  }
 
 }
 
