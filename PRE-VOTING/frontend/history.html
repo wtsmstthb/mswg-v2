@@ -1,575 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>
-    MSWG Pre-Voting History
-  </title>
-
-
-  <link
-    rel="preconnect"
-    href="https://fonts.googleapis.com"
-  >
-
-  <link
-    rel="preconnect"
-    href="https://fonts.gstatic.com"
-    crossorigin
-  >
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
-  >
-
-
-  <link
-    rel="stylesheet"
-    href="prevoting.css"
-  >
-
-  <link
-    rel="stylesheet"
-    href="history.css"
-  >
-
-</head>
-
-
-<body class="history-page">
-
-
-<div class="app">
-
-
-  <!-- =========================
-       SIDEBAR
-  ========================== -->
-
-  <div
-    class="sidebar"
-    id="sidebarMount"
-  ></div>
-
-
-
-  <!-- =========================
-       MAIN
-  ========================== -->
-
-  <main class="main">
-
-
-    <!-- Important:
-         Existing template expects
-         content inside .content
-    -->
-
-    <div class="content">
-
-
-      <!-- =========================
-           PAGE HEADER
-      ========================== -->
-
-      <header class="page-heading">
-
-        <div>
-
-          <div class="eyebrow">
-            SHAREHOLDER VOTING
-          </div>
-
-          <h1>
-            Pre-Voting History
-          </h1>
-
-          <p class="subtitle">
-            View previously submitted pre-voting decisions
-            and voting records.
-          </p>
-
-        </div>
-
-
-        <div>
-
-          <a
-            href="index.html"
-            class="btn primary history-new-btn"
-          >
-            + New Pre-Voting
-          </a>
-
-        </div>
-
-      </header>
-
-
-
-      <!-- =========================
-           HISTORY LIST VIEW
-      ========================== -->
-
-      <div id="historyView">
-
-
-        <!-- SUMMARY -->
-
-        <section class="history-summary">
-
-          <div class="history-stat-card">
-
-            <div class="history-stat-label">
-              TOTAL SUBMISSIONS
-            </div>
-
-            <div
-              class="history-stat-value"
-              id="totalSubmissions"
-            >
-              —
-            </div>
-
-          </div>
-
-        </section>
-
-
-
-        <!-- =========================
-             HISTORY CARD
-        ========================== -->
-
-        <section class="card form-card">
-
-
-          <!-- CARD HEADER -->
-
-          <div class="form-head">
-
-            <div>
-
-              <h2>
-                Submitted Pre-Voting
-              </h2>
-
-              <p>
-                Select a record to view its meeting information,
-                resolutions and voting decisions.
-              </p>
-
-            </div>
-
-          </div>
-
-
-
-          <!-- CARD BODY -->
-
-          <div class="history-card-body">
-
-
-            <!-- SEARCH -->
-
-            <div class="history-toolbar">
-
-              <div class="history-search">
-
-                <input
-                  type="search"
-                  id="historySearch"
-                  placeholder="Search company or meeting..."
-                >
-
-              </div>
-
-            </div>
-
-
-
-            <!-- TABLE -->
-
-            <div class="history-table-wrap">
-
-              <table class="history-table">
-
-                <thead>
-
-                  <tr>
-
-                    <th>
-                      COMPANY
-                    </th>
-
-                    <th>
-                      MEETING
-                    </th>
-
-                    <th>
-                      MEETING DATE
-                    </th>
-
-                    <th>
-                      SUBMITTED
-                    </th>
-
-                    <th class="history-action-heading">
-                      ACTION
-                    </th>
-
-                  </tr>
-
-                </thead>
-
-
-                <tbody id="historyTableBody">
-
-                  <tr>
-
-                    <td
-                      colspan="5"
-                      class="history-loading"
-                    >
-                      Loading pre-voting history...
-                    </td>
-
-                  </tr>
-
-                </tbody>
-
-              </table>
-
-            </div>
-
-
-          </div>
-
-        </section>
-
-
-      </div>
-
-
-
-      <!-- =========================
-           DETAIL VIEW
-      ========================== -->
-
-      <div
-        id="historyDetail"
-        hidden
-      >
-
-
-        <!-- DETAIL ACTIONS -->
-
-        <div class="history-detail-actions">
-
-          <button
-            type="button"
-            id="backBtn"
-            class="btn"
-          >
-            ← Back to History
-          </button>
-
-
-          <button
-            type="button"
-            id="printHistoryBtn"
-            class="btn primary"
-          >
-            Print / PDF
-          </button>
-
-        </div>
-
-
-
-        <!-- =========================
-             PRINT AREA
-        ========================== -->
-
-        <div id="historyPrintArea">
-
-
-
-          <!-- =========================
-               MEETING INFORMATION
-          ========================== -->
-
-          <section class="card form-card">
-
-
-            <div class="form-head">
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pre-Voting History · MSWG</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="prevoting.css" />
+    <link rel="stylesheet" href="history.css" />
+  </head>
+  <body class="history-page">
+    <div class="app">
+      <aside class="sidebar" id="sidebarMount"></aside>
+
+      <main class="main">
+        <div class="content">
+          <!-- LIST VIEW -->
+          <section id="historyView">
+            <div class="page-heading page-header">
               <div>
-
-                <div class="eyebrow">
-                  PRE-VOTING RECORD
-                </div>
-
-                <h2 id="detailCompany">
-                  —
-                </h2>
-
-                <p id="detailDescription">
-                  —
+                <div class="eyebrow">MSWG Workspace</div>
+                <h1>Pre-Voting History</h1>
+                <p class="subtitle">
+                  Review submitted pre-voting records and open a meeting for full detail.
                 </p>
-
               </div>
-
+              <a class="btn primary history-new-btn" href="index.html">New pre-voting</a>
             </div>
 
-
-
-            <div class="history-detail-body">
-
-
-              <div class="history-meeting-grid">
-
-
-                <div class="history-detail-field">
-
-                  <div class="history-detail-label">
-                    MEETING TYPE
-                  </div>
-
-                  <div
-                    class="history-detail-value"
-                    id="detailType"
-                  >
-                    —
-                  </div>
-
-                </div>
-
-
-
-                <div class="history-detail-field">
-
-                  <div class="history-detail-label">
-                    MEETING DATE
-                  </div>
-
-                  <div
-                    class="history-detail-value"
-                    id="detailDate"
-                  >
-                    —
-                  </div>
-
-                </div>
-
-
-
-                <div class="history-detail-field">
-
-                  <div class="history-detail-label">
-                    MEETING TIME
-                  </div>
-
-                  <div
-                    class="history-detail-value"
-                    id="detailTime"
-                  >
-                    —
-                  </div>
-
-                </div>
-
-
-
-                <div
-                  class="
-                    history-detail-field
-                    history-detail-full
-                  "
-                >
-
-                  <div class="history-detail-label">
-                    VENUE
-                  </div>
-
-                  <div
-                    class="history-detail-value"
-                    id="detailVenue"
-                  >
-                    —
-                  </div>
-
-                </div>
-
-
+            <div class="history-summary">
+              <div class="history-stat-card">
+                <div class="history-stat-label">TOTAL SUBMISSIONS</div>
+                <div class="history-stat-value" id="totalSubmissions">0</div>
               </div>
-
-
             </div>
 
-          </section>
+            <div class="card">
+              <div class="history-card-body">
+                <div class="history-toolbar">
+                  <div class="history-search">
+                    <input
+                      id="historySearch"
+                      type="search"
+                      placeholder="Search company, meeting, or type…"
+                      aria-label="Search pre-voting history"
+                    />
+                  </div>
+                </div>
 
-
-
-          <!-- =========================
-               VOTING DECISIONS
-          ========================== -->
-
-          <section class="card form-card">
-
-
-            <div class="form-head">
-
-              <div>
-
-                <h2>
-                  Voting Decisions
-                </h2>
-
-                <p>
-                  Submitted voting decisions
-                  for each resolution.
-                </p>
-
-              </div>
-
-            </div>
-
-
-
-            <div class="history-card-body">
-
-
-              <div class="history-table-wrap">
-
-                <table class="history-table">
-
+                <div class="history-table-wrap">
+                  <table class="history-table">
                     <thead>
-
-                        <tr>
-
-                            <th
-                            class="history-resolution-no"
-                            rowspan="2"
-                            >
-                            No.
-                            </th>
-
-                            <th class="history-resolution-heading">
-                            Resolutions
-                            </th>
-
-                            <th
-                            class="history-vote-heading"
-                            rowspan="2"
-                            >
-                            VOTE
-                            </th>
-
-                            <th
-                            class="history-remarks-heading"
-                            rowspan="2"
-                            >
-                            REMARKS
-                            </th>
-
-                        </tr>
-
-
-                        <tr>
-
-                            <th class="history-business-heading">
-                            As Ordinary Business
-                            </th>
-
-                        </tr>
-
+                      <tr>
+                        <th>Company</th>
+                        <th>Meeting</th>
+                        <th>Meeting date</th>
+                        <th>Submitted</th>
+                        <th class="history-action-heading">Action</th>
+                      </tr>
                     </thead>
-
-
-                  <tbody id="detailVotes">
-
-                  </tbody>
-
-                </table>
-
+                    <tbody id="historyTableBody">
+                      <tr>
+                        <td colspan="5" class="history-loading">Loading history…</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-
-
             </div>
-
           </section>
 
-
-
-          <!-- =========================
-               OVERALL REMARKS
-          ========================== -->
-
-          <section class="card form-card">
-
-
-            <div class="form-head">
-
+          <!-- DETAIL VIEW -->
+          <section id="historyDetail" hidden>
+            <div class="history-detail-actions page-header">
               <div>
-
-                <h2>
-                  Overall Remarks
-                </h2>
-
+                <button type="button" class="btn" id="backBtn">← Back to history</button>
               </div>
-
+              <button type="button" class="btn primary" id="printHistoryBtn">
+                Print / PDF
+              </button>
             </div>
 
-
-
-            <div class="history-card-body">
-
-              <div
-                class="history-overall-remarks"
-                id="detailOverall"
-              >
-                —
+            <div class="card">
+              <div class="form-head">
+                <div>
+                  <h2 class="history-detail-title" id="detailCompany">—</h2>
+                  <p class="history-detail-subtitle" id="detailDescription">—</p>
+                </div>
               </div>
 
+              <div class="form-body">
+                <!--
+                  Meeting layout (fixed):
+                  Row 1 Col 1 → Meeting Type
+                  Row 2 Col 1 → Meeting Time | Row 2 Col 2 → Meeting Date
+                  Row 3       → Venue (full width / one column)
+                -->
+                <div class="history-meeting-grid" aria-label="Meeting details">
+                  <div class="history-detail-field history-detail-type">
+                    <div class="history-detail-label">Meeting type</div>
+                    <div class="history-detail-value" id="detailType">—</div>
+                  </div>
+
+                  <!-- Keeps row-1 column-2 bordered while Meeting type stays in column 1 -->
+                  <div
+                    class="history-detail-field history-detail-type-spacer"
+                    aria-hidden="true"
+                  ></div>
+
+                  <div class="history-detail-field history-detail-time">
+                    <div class="history-detail-label">Meeting time</div>
+                    <div class="history-detail-value" id="detailTime">—</div>
+                  </div>
+
+                  <div class="history-detail-field history-detail-date">
+                    <div class="history-detail-label">Meeting date</div>
+                    <div class="history-detail-value" id="detailDate">—</div>
+                  </div>
+
+                  <div class="history-detail-field history-detail-venue history-detail-full">
+                    <div class="history-detail-label">Venue</div>
+                    <div class="history-detail-value" id="detailVenue">—</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
+            <div class="card">
+              <div class="form-head">
+                <div>
+                  <h2>Resolutions</h2>
+                  <p>Voting decisions recorded for this submission.</p>
+                </div>
+              </div>
 
+              <div class="form-body">
+                <div class="history-table-wrap">
+                  <table class="history-table">
+                    <thead>
+                      <tr>
+                        <th class="history-business-heading" colspan="4">
+                          Ordinary Resolutions
+                        </th>
+                      </tr>
+                      <tr>
+                        <th class="history-resolution-no">No.</th>
+                        <th class="history-resolution-heading">Resolutions</th>
+                        <th class="history-vote-heading">Vote</th>
+                        <th class="history-remarks-heading">Remarks</th>
+                      </tr>
+                    </thead>
+                    <tbody id="detailVotes">
+                      <tr>
+                        <td colspan="4" class="history-empty">No voting decisions found.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="form-head">
+                <div>
+                  <h2>Overall remarks</h2>
+                  <p>General notes submitted with this pre-voting record.</p>
+                </div>
+              </div>
+              <div class="form-body">
+                <div class="history-overall-remarks" id="detailOverall">—</div>
+              </div>
+            </div>
           </section>
-
-
         </div>
-
-      </div>
-
-
+      </main>
     </div>
-    <!-- END .content -->
 
-
-  </main>
-
-
-</div>
-
-<script>
-  window.CURRENT_PAGE =
-    "pre-voting-history";
-</script>
-
-<script src="sidebar.js"></script>
-<script src="history.js"></script>
-
-
-</body>
-
+    <script>
+      window.CURRENT_PAGE = "pre-voting-history";
+      window.APP_CONTEXT = {
+        userName: "MSWG Analyst",
+        role: "Research Analyst"
+      };
+    </script>
+    <script src="sidebar.js"></script>
+    <script src="history.js"></script>
+  </body>
 </html>
