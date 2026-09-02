@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="prevoting.css" />
+    <link rel="stylesheet" href="index.css" />
     <link rel="stylesheet" href="history.css" />
   </head>
   <body class="history-page">
@@ -18,6 +18,30 @@
       <aside class="sidebar" id="sidebarMount"></aside>
 
       <main class="main">
+        <header class="topbar" id="topbar">
+          <div class="topbar-copy">
+            <div class="topbar-eyebrow">MSWG · Pre-Voting History</div>
+            <div class="topbar-greeting" id="topbarGreeting">Hi, Analyst</div>
+            <div class="topbar-subtitle">Submitted voting records</div>
+          </div>
+
+          <div class="profile-wrap">
+            <button
+              type="button"
+              class="profile-btn"
+              id="profileBtn"
+              aria-expanded="false"
+              aria-haspopup="true"
+            >
+              MA
+            </button>
+            <div class="profile-dropdown" id="profileDropdown">
+              <button type="button">Profile</button>
+              <button type="button">Sign out</button>
+            </div>
+          </div>
+        </header>
+
         <div class="content">
           <!-- LIST VIEW -->
           <section id="historyView">
@@ -29,7 +53,7 @@
                   Review submitted pre-voting records and open a meeting for full detail.
                 </p>
               </div>
-              <a class="btn primary history-new-btn" href="index.html">New pre-voting</a>
+              <a class="btn primary history-new-btn" href="./index.html">New pre-voting</a>
             </div>
 
             <div class="history-summary">
@@ -187,7 +211,7 @@
         role: "Research Analyst"
       };
     </script>
-    <script src="sidebar.js"></script>
+    <script src="nav.js"></script>
     <script src="history.js"></script>
   </body>
 </html>

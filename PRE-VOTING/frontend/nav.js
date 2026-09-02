@@ -63,6 +63,78 @@ function renderNavItem(item, currentPage) {
   `;
 }
 
+function getTopbarContext() {
+  const context = window.APP_CONTEXT || {};
+  const userName = context.userName || "MSWG Analyst";
+
+  let positionLabel = "MSWG User";
+
+  if (context.canViewAll) {
+    positionLabel = "Full-visibility viewer";
+  } else if (context.isDepartmentHead) {
+    positionLabel = "Head of Department";
+  } else if (context.role) {
+    positionLabel = context.role;
+  }
+
+  const initials = userName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("") || "M";
+
+  return { userName, positionLabel, initials };
+}
+
+
+function firstName(userName) {
+  return userName.split(/\s+/)[0] || userName;
+}
+
+
+function initTopbar() {
+  const greeting = document.getElementById("topbarGreeting");
+  const profileBtn = document.getElementById("profileBtn");
+  const dropdown = document.getElementById("profileDropdown");
+  const { userName, initials } = getTopbarContext();
+
+  if (greeting) {
+    greeting.textContent = `Hi, ${firstName(userName)}`;
+  }
+
+  if (profileBtn) {
+    profileBtn.textContent = initials;
+    profileBtn.setAttribute("aria-label", `${userName} profile menu`);
+  }
+
+  if (!profileBtn || !dropdown) {
+    return;
+  }
+
+  profileBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const open = dropdown.classList.toggle("open");
+    profileBtn.setAttribute("aria-expanded", String(open));
+  });
+
+  document.addEventListener("click", () => {
+    dropdown.classList.remove("open");
+    profileBtn.setAttribute("aria-expanded", "false");
+  });
+
+  dropdown.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+}
+
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initTopbar);
+} else {
+  initTopbar();
+}
+
 
 function renderSidebar() {
 

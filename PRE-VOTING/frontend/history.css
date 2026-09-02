@@ -7,6 +7,15 @@
 }
 
 
+/* History pages use the Horizon topbar defined in prevoting.css.
+   Hide it when printing a submission. */
+@media print {
+  .topbar {
+    display: none !important;
+  }
+}
+
+
 /* =========================================================
    SUMMARY
 ========================================================= */
@@ -532,6 +541,7 @@
 @media print {
   .sidebar,
   .sidebar-toggle,
+  .topbar,
   .page-header,
   .history-detail-actions {
     display: none !important;
