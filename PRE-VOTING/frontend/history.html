@@ -53,7 +53,7 @@
                   Review submitted pre-voting records and open a meeting for full detail.
                 </p>
               </div>
-              <a class="btn primary history-new-btn" href="./index.html">New pre-voting</a>
+              <a class="btn primary history-new-btn" href="index.html">New pre-voting</a>
             </div>
 
             <div class="history-summary">
@@ -100,7 +100,7 @@
 
           <!-- DETAIL VIEW -->
           <section id="historyDetail" hidden>
-            <div class="history-detail-actions page-header">
+            <div class="history-detail-actions page-header no-print">
               <div>
                 <button type="button" class="btn" id="backBtn">← Back to history</button>
               </div>
@@ -109,7 +109,9 @@
               </button>
             </div>
 
-            <div class="card">
+            <p class="print-stamp print-only" id="printGeneratedAt"></p>
+
+            <div class="card print-section print-section-meeting">
               <div class="form-head">
                 <div>
                   <h2 class="history-detail-title" id="detailCompany">—</h2>
@@ -119,10 +121,10 @@
 
               <div class="form-body">
                 <!--
-                  Meeting layout (fixed):
-                  Row 1 Col 1 → Meeting Type
-                  Row 2 Col 1 → Meeting Time | Row 2 Col 2 → Meeting Date
-                  Row 3       → Venue (full width / one column)
+                  Meeting layout:
+                  Row 1 → Meeting Type (full width)
+                  Row 2 → Venue (full width)
+                  Row 3 → Meeting Time | Meeting Date
                 -->
                 <div class="history-meeting-grid" aria-label="Meeting details">
                   <div class="history-detail-field history-detail-type">
@@ -130,11 +132,10 @@
                     <div class="history-detail-value" id="detailType">—</div>
                   </div>
 
-                  <!-- Keeps row-1 column-2 bordered while Meeting type stays in column 1 -->
-                  <div
-                    class="history-detail-field history-detail-type-spacer"
-                    aria-hidden="true"
-                  ></div>
+                  <div class="history-detail-field history-detail-venue">
+                    <div class="history-detail-label">Venue</div>
+                    <div class="history-detail-value" id="detailVenue">—</div>
+                  </div>
 
                   <div class="history-detail-field history-detail-time">
                     <div class="history-detail-label">Meeting time</div>
@@ -145,20 +146,15 @@
                     <div class="history-detail-label">Meeting date</div>
                     <div class="history-detail-value" id="detailDate">—</div>
                   </div>
-
-                  <div class="history-detail-field history-detail-venue history-detail-full">
-                    <div class="history-detail-label">Venue</div>
-                    <div class="history-detail-value" id="detailVenue">—</div>
-                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="card">
+            <div class="card print-section print-section-resolutions">
               <div class="form-head">
                 <div>
                   <h2>Resolutions</h2>
-                  <p>Voting decisions recorded for this submission.</p>
+                  <p class="no-print">Voting decisions recorded for this submission.</p>
                 </div>
               </div>
 
@@ -188,15 +184,26 @@
               </div>
             </div>
 
-            <div class="card">
+            <div class="card print-section print-section-remarks">
               <div class="form-head">
                 <div>
                   <h2>Overall remarks</h2>
-                  <p>General notes submitted with this pre-voting record.</p>
+                  <p class="no-print">General notes submitted with this pre-voting record.</p>
                 </div>
               </div>
               <div class="form-body">
                 <div class="history-overall-remarks" id="detailOverall">—</div>
+              </div>
+            </div>
+
+            <div class="print-endorsement print-only">
+              <div class="print-sign">
+                <div class="print-sign-line"></div>
+                <div>Prepared by</div>
+              </div>
+              <div class="print-sign">
+                <div class="print-sign-line"></div>
+                <div>Reviewed by</div>
               </div>
             </div>
           </section>
@@ -211,7 +218,7 @@
         role: "Research Analyst"
       };
     </script>
-    <script src="nav.js"></script>
     <script src="history.js"></script>
+    <script src="nav.js"></script>
   </body>
 </html>
