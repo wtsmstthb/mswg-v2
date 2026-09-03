@@ -24,16 +24,22 @@ function createCreateRiskHandler(dependencies = {}) {
       const input = validateCreateRisk(parseBody(event));
       const currentTime = now();
       const timestamp = currentTime.toISOString();
-      const { quarter, year } = getQuarterAndYear(currentTime);
+      const automaticPeriod = getQuarterAndYear(currentTime);
+      const quarter = input.quarter || automaticPeriod.quarter;
+      delete input.quarter;
+      const riskId = randomUUID();
 
       const item = {
         dept_id: identity.departmentId,
-        risk_id: randomUUID(),
+        risk_id: riskId,
+        risk_reference: `RR-${automaticPeriod.year}-${riskId.slice(0, 8).toUpperCase()}`,
         created_by: identity.userId,
+        created_by_name: identity.displayName,
         ...input,
         quarter,
-        year,
+        year: automaticPeriod.year,
         status: "active",
+        record_version: 1,
         created_at: timestamp,
         updated_at: timestamp
       };

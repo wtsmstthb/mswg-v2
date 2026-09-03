@@ -2,9 +2,9 @@
 
 This is the authoritative continuity brief for the MSWG internal-platform project. It supersedes older RR briefs when they conflict with a later confirmed decision or the current code.
 
-**Last consolidated:** 28 August 2026
+**Last consolidated:** 1 September 2026
 **Workspace:** C:\Projects\RR
-**Current delivery state:** RR and AGM frontend/backend code exists. Both repositories have been proven against persistent DynamoDB Local, and the AGM browser now uses the real local API and database. Nothing has been deployed to AWS; RR browser CRUD still uses localStorage.
+**Current delivery state:** RR and AGM frontend/backend code exists. Both browsers now use real local API adapters and persistent DynamoDB Local tables, including versioned changes and retrievable audit history. Nothing has been deployed to AWS.
 
 ## 1. Purpose and scope
 
@@ -135,7 +135,6 @@ The system, not the HOD, should calculate the numerical total. The exact submit/
 ### Not yet completed
 
 - Real AWS account deployment
-- End-to-end RR browser-to-API-to-DynamoDB operation
 - Portal card filtering by platform entitlement
 - Pre-Voting requirements, screens, backend, and database
 - Final production Cognito/account provisioning and AWS deployment of the AGM workflow
@@ -165,7 +164,7 @@ Claims drive RR page and action visibility. Local development can use mock claim
 
 ### RR functionality
 
-The intended and substantially prototyped capabilities are:
+The implemented local capabilities are:
 
 - filterable departmental risk table
 - impact-versus-likelihood matrix
@@ -175,7 +174,7 @@ The intended and substantially prototyped capabilities are:
 - organization overview for full-visibility users
 - soft archive and permanent history retention
 
-The frontend still stores prototype risk data in browser localStorage. RISKREGISTER/frontend/api-client.js is prepared, but page-by-page CRUD has not yet been connected to the Lambda/API layer. Therefore the current screens do not prove database persistence.
+The current browser loads records through `api-client.js`. Create, creator-only edit, organisation view, archive, and real audit-history retrieval use the same six handlers as the deployed HTTP API. Risk records are not stored in browser localStorage. A local role selector exercises full-visibility, IT HOD, and Corporate Monitoring HOD claims against the local API adapter.
 
 ### RR backend
 
@@ -196,7 +195,8 @@ Current security behaviour:
 - cross-department reads require the full-visibility group
 - updates require an exact creator match
 - every successful update writes an audit-history record transactionally
-- archives require full-visibility permission and never hard-delete data
+- optimistic record versions reject stale edits instead of silently overwriting them
+- archives require full-visibility permission, write an audit entry transactionally, and never hard-delete data
 
 The old test*.js Lambda scripts are historical manual harnesses. The tests directory contains the current authorization evidence.
 
@@ -521,7 +521,6 @@ Verified on 28 August 2026:
 
 Not yet proven:
 
-- RR browser-to-API-to-database integration
 - SAM lint/build
 - real Cognito login and group provisioning in AWS
 - deployed IAM permissions
@@ -548,19 +547,17 @@ Not yet proven:
 ## 16. Recommended next sequence
 
 1. Use this brief to reconcile the older access-control and readiness documents.
-2. Connect the RR frontend's localStorage operations to api-client.js and the tested backend.
-3. Run the RR frontend, API adapter, and persistent DynamoDB together locally.
-4. Implement portal entitlement mapping and matching backend app-entitlement checks.
-5. Obtain written AGM questionnaire/workflow approval and run analyst/HOD user acceptance testing.
-6. Decide whether the approved data snapshot is sufficient or whether MSWG also requires storing a PDF binary in S3.
-7. Gather and approve Pre-Voting requirements before coding it.
-8. Revise the hosted frontend entry point for the shared portal and add Pre-Voting resources only after its design is approved.
-9. Disable unnecessary X-Ray tracing and set the portal as the hosted entry point.
-10. Install SAM CLI, then validate and build the template.
-11. Obtain the company-owned AWS account and deploy an isolated dev environment.
-12. Run security, persistence, Cognito, browser, print, and user-acceptance tests.
-13. Measure actual usage and Cost Explorer data, then replace Finance assumptions with pilot evidence.
-14. Complete the Admin Handbook, user guide, architecture diagram, deployment procedure, and cost-control runbook before production handover.
+2. Implement portal entitlement mapping and matching backend app-entitlement checks.
+3. Obtain written AGM questionnaire/workflow approval and run analyst/HOD user acceptance testing.
+4. Decide whether the approved data snapshot is sufficient or whether MSWG also requires storing a PDF binary in S3.
+5. Gather and approve Pre-Voting requirements before coding it.
+6. Revise the hosted frontend entry point for the shared portal and add Pre-Voting resources only after its design is approved.
+7. Disable unnecessary X-Ray tracing and set the portal as the hosted entry point.
+8. Install SAM CLI, then validate and build the template.
+9. Obtain the company-owned AWS account and deploy an isolated dev environment.
+10. Run security, persistence, Cognito, browser, print, and user-acceptance tests.
+11. Measure actual usage and Cost Explorer data, then replace Finance assumptions with pilot evidence.
+12. Complete the Admin Handbook, user guide, architecture diagram, deployment procedure, and cost-control runbook before production handover.
 
 ## 17. Working conventions
 

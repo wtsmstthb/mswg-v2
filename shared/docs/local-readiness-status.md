@@ -1,6 +1,6 @@
 # Local Readiness Status
 
-**Updated:** 28 August 2026
+**Updated:** 1 September 2026
 
 ## Completed
 
@@ -26,13 +26,17 @@
 - AGM create/save/submit/return/approve/reopen backend with server-side scoring and optimistic concurrency
 - AGM assessment-record list, audit-history drawer, workflow locking, and approved-report regeneration
 - Local AGM frontend/API server and repeatable real-DynamoDB integration/inspection tools
+- Local RR frontend/API server using the same six handlers as the AWS route definitions
+- RR browser create, reload persistence, creator-only edit, calculated ratings, real audit history, organisation view, and privileged soft archive
+- Optimistic RR record versions and transactional archive-history entries
 
 ## Verified
 
-- `node --test .\RISKREGISTER\tests\*.test.js .\AGM\tests\*.test.js .\shared\tests\*.test.js`: 28 tests passed after the repository restructure
-- `node RISKREGISTER\tools\test-local-dynamodb.js`: create, scoped reads, authorization denial, transactional update/history, archive, and filtering passed
+- `node --test .\RISKREGISTER\tests\*.test.js`: 20 Risk Register tests passed after browser persistence integration
+- `node RISKREGISTER\tools\test-local-dynamodb.js`: complete form create, scoped reads, authorization denial, versioned transactional update/history, transactional archive/history, and filtering passed
 - `node AGM\tools\test-agm-local-dynamodb.js`: draft, retrieval, version-safe save, submission lock, HOD approval, report snapshot, reopen, and history passed
 - Live local browser workflow verified save, submit, HOD approval, PDF regeneration, reopen, records retrieval, and history
+- Live local RR browser workflow verified create, reload persistence, edit/rating recalculation, audit history, archive, and HOD scoping
 - Docker restart retained both current tables and the risk/history test records
 - Node syntax check: Lambda/frontend and local-DynamoDB utility JavaScript passed at the time of the last check
 - Workbook: formulas inspected with no formula-error matches and all three sheets visually reviewed
@@ -40,8 +44,6 @@
 ## Pending without AWS
 
 - Install AWS SAM CLI, then run `sam validate --lint` and `sam build`
-- Replace page-level localStorage operations with calls through `api-client.js`
-- Add frontend creator-only edit controls and production error/loading/session-expiry handling
 - Generate final environment `config.js` from stack outputs
 
 ## Pending MSWG decisions/data
@@ -62,7 +64,7 @@
 - Deploy the `dev` stack through the temporary deployment role
 - Provision approved Cognito users and groups from the workbook
 - Upload the consolidated frontend and populate its environment configuration
-- Connect localStorage page operations to authenticated API endpoints
+- Replace the local API URL and role adapter with the deployed API URL and Cognito tokens
 - Configure DNS/certificate if the custom domain is approved
 - Confirm alarms and Budgets subscriptions
 - Run the acceptance checklist in `dev`, remediate findings, then deploy `prod`

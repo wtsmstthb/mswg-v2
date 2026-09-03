@@ -26,6 +26,7 @@ function createArchiveRiskHandler(dependencies = {}) {
       }
 
       const item = await repo.archiveRisk({
+        existing,
         departmentId,
         riskId,
         userId: identity.userId,

@@ -33,6 +33,7 @@ RR/
 node --test .\RISKREGISTER\tests\*.test.js
 node RISKREGISTER\tools\setup-local-dynamodb.js
 node RISKREGISTER\tools\test-local-dynamodb.js
+node RISKREGISTER\tools\serve-risk-local.js
 ```
 
 ## Conduct of AGM
@@ -50,6 +51,7 @@ Run every platform and repository-structure test together:
 node --test .\RISKREGISTER\tests\*.test.js .\AGM\tests\*.test.js .\shared\tests\*.test.js
 ```
 
+The local Risk Register opens at `http://localhost:3200/RISKREGISTER/frontend/dashboard.html`.
 The local AGM application opens at `http://localhost:3100/AGM/frontend/records.html`.
 
 ## Shared components

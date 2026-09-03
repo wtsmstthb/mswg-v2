@@ -75,6 +75,7 @@
               <th>Effectiveness</th>
               <th>Trend</th>
               <th>Residual risk rating</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -83,25 +84,35 @@
       </div>
     </div>
 
-    <footer>Prototype data stored in this browser only. Real accounts and shared data arrive once Cognito and the API are wired in.</footer>
+    <footer>Records are loaded from the Risk Register API and persisted in DynamoDB.</footer>
   </div>
 </div>
 
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-header">
-      <h2>Register a new risk</h2>
+      <h2 id="modalTitle">Register a new risk</h2>
       <button class="modal-close" id="modalClose">&times;</button>
     </div>
     <form id="riskForm">
       <div class="form-grid">
         <div class="form-group">
           <label for="fQuarter">Quarter</label>
-          <input type="text" id="fQuarter" placeholder="e.g. Q3" required>
+          <select id="fQuarter" class="locked-quarter" required disabled aria-readonly="true">
+            <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+          </select>
+          <small class="field-hint">Set automatically from today's date.</small>
         </div>
         <div class="form-group">
           <label for="fElement">Risk element</label>
-          <input type="text" id="fElement" placeholder="e.g. Compliance" required>
+          <select id="fElement" required>
+            <option value="">Select a risk element</option>
+            <option>Strategic</option><option>Operational</option><option>Financial</option>
+            <option>Compliance</option><option>Legal / Regulatory</option><option>Technology</option>
+            <option>Cybersecurity</option><option>People</option><option>Reputation</option><option>ESG</option>
+            <option value="__custom__">Other — enter a custom element</option>
+          </select>
+          <input type="text" id="fElementCustom" placeholder="Enter custom risk element" hidden>
         </div>
 
         <div class="form-group full">
@@ -172,7 +183,7 @@
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="modalCancel">Cancel</button>
-        <button type="submit" class="btn-primary">Register risk</button>
+        <button type="submit" class="btn-primary" id="modalSubmit">Register risk</button>
       </div>
     </form>
   </div>
@@ -188,6 +199,11 @@
 <script src="sidebar.js"></script>
 <script>
 let matrixMode = "inherent";
+let editingRisk = null;
+
+function currentCalendarQuarter(date = new Date()){
+  return `Q${Math.floor(date.getMonth() / 3) + 1}`;
+}
 
 function getFiltered(){
   const q = document.getElementById("filterQuarter").value;
@@ -302,15 +318,19 @@ function renderTable(rows){
   rows.forEach(r => {
     body.insertAdjacentHTML("beforeend", `
       <tr>
-        <td>${r.no}</td>
-        <td>${r.quarter}</td>
-        <td>${r.element}</td>
-        <td style="max-width:280px;">${r.statement}</td>
+        <td>${escapeHtml(r.no)}</td>
+        <td>${escapeHtml(r.quarter)}</td>
+        <td>${escapeHtml(r.element)}</td>
+        <td style="max-width:280px;">${escapeHtml(r.statement)}</td>
         <td><span class="badge ${ratingClass(r.inherentRating)}">${r.inherentRating}</span></td>
-        <td class="controls-cell">${r.controlMethods}</td>
-        <td>${r.controlEffectiveness}</td>
+        <td class="controls-cell">${escapeHtml(r.controlMethods)}</td>
+        <td>${escapeHtml(r.controlEffectiveness)}</td>
         <td class="trend ${trendClass(r.riskTrend)}">${trendArrow(r.riskTrend)}</td>
         <td><span class="badge ${ratingClass(r.residualRating)}">${r.residualRating}</span></td>
+        <td><div class="row-actions">
+          ${r.createdBy === window.APP_CONTEXT.userId ? `<button type="button" class="table-action" data-edit-risk="${escapeHtml(r.riskId)}">Edit</button>` : ""}
+          <a class="table-action" href="history.html?risk=${encodeURIComponent(r.riskId)}">History</a>
+        </div></td>
       </tr>
     `);
   });
@@ -371,16 +391,26 @@ document.getElementById("btnResidual").addEventListener("click", () => {
 const modalOverlay = document.getElementById("modalOverlay");
 const riskForm = document.getElementById("riskForm");
 
-function openModal(){
+function openModal(risk = null){
+  editingRisk = risk;
   riskForm.reset();
+  if (risk) {
+    fillRiskForm(risk);
+  } else {
+    document.getElementById("fQuarter").value = currentCalendarQuarter();
+    setRiskElementField("");
+  }
+  document.getElementById("modalTitle").textContent = risk ? `Edit ${risk.no}` : "Register a new risk";
+  document.getElementById("modalSubmit").textContent = risk ? "Save changes" : "Register risk";
   updateRatingPreviews();
   modalOverlay.classList.add("open");
 }
 function closeModal(){
   modalOverlay.classList.remove("open");
+  editingRisk = null;
 }
 
-document.getElementById("btnOpenModal").addEventListener("click", openModal);
+document.getElementById("btnOpenModal").addEventListener("click", () => openModal());
 document.getElementById("modalClose").addEventListener("click", closeModal);
 document.getElementById("modalCancel").addEventListener("click", closeModal);
 modalOverlay.addEventListener("click", (e) => {
@@ -409,40 +439,58 @@ function updateRatingPreviews(){
   document.getElementById(id).addEventListener("change", updateRatingPreviews);
 });
 
-riskForm.addEventListener("submit", (e) => {
+riskForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-
-  const inherentImpact = document.getElementById("fInherentImpact").value;
-  const inherentLikelihood = document.getElementById("fInherentLikelihood").value;
-  const residualImpact = document.getElementById("fResidualImpact").value;
-  const residualLikelihood = document.getElementById("fResidualLikelihood").value;
-
-  const newRisk = {
-    no: nextRiskNo(),
-    quarter: document.getElementById("fQuarter").value.trim(),
-    element: document.getElementById("fElement").value.trim(),
-    statement: document.getElementById("fStatement").value.trim(),
-    inherentImpact, inherentLikelihood,
-    inherentRating: computeRating(inherentImpact, inherentLikelihood),
-    controlMethods: document.getElementById("fControlMethods").value.trim(),
-    addressedRootCause: document.getElementById("fRootCause").value,
-    controlDocumented: document.getElementById("fDocumented").value,
-    appliedConsistently: document.getElementById("fConsistent").value,
-    controlEffectiveness: document.getElementById("fEffectiveness").value,
-    riskTrend: document.getElementById("fTrend").value,
-    residualImpact, residualLikelihood,
-    residualRating: computeRating(residualImpact, residualLikelihood),
-    status: "active"
-  };
-
-  addRisk(newRisk);
-  closeModal();
-  populateFilters();
-  renderAll();
+  const submit = document.getElementById("modalSubmit");
+  setButtonBusy(submit, true, editingRisk ? "Saving…" : "Registering…");
+  try {
+    const payload = riskPayloadFromForm();
+    if (editingRisk) {
+      payload.expected_version = editingRisk.recordVersion;
+      await updateRisk(editingRisk.riskId, payload);
+      setPageNotice("Risk updated and an audit-history entry was recorded.", "success");
+    } else {
+      await addRisk(payload);
+      setPageNotice("Risk registered in DynamoDB.", "success");
+    }
+    closeModal();
+    await loadDepartmentRisks();
+    populateFilters();
+    renderAll();
+  } catch (error) {
+    setPageNotice(error.message, "error");
+  } finally {
+    setButtonBusy(submit, false);
+  }
 });
 
-populateFilters();
-renderAll();
+document.getElementById("tableBody").addEventListener("click", event => {
+  const button = event.target.closest("[data-edit-risk]");
+  if (!button) return;
+  const risk = getAllData().find(item => item.riskId === button.dataset.editRisk);
+  if (risk) openModal(risk);
+});
+
+async function initialiseDashboard(){
+  setPageNotice("Loading risks from DynamoDB…", "info");
+  try {
+    await loadDepartmentRisks();
+    if (new URLSearchParams(window.location.search).get("created") === "1") {
+      setPageNotice("Risk registered in DynamoDB.", "success");
+      window.history.replaceState({}, "", "dashboard.html");
+    } else {
+      clearPageNotice();
+    }
+    populateFilters();
+    renderAll();
+  } catch (error) {
+    setPageNotice(`Could not load the register: ${error.message}`, "error");
+    renderAll();
+  }
+}
+
+initialiseDashboard();
+configureRiskElementField();
 </script>
 </body>
 </html>

@@ -23,13 +23,30 @@
     <div class="panel">
       <form id="riskForm">
         <div class="form-grid">
+          <div class="form-group full">
+            <label for="fTemplate">Start from an existing risk <span style="font-weight:400; color:var(--muted);">(optional)</span></label>
+            <select id="fTemplate">
+              <option value="">Create a new risk from scratch</option>
+            </select>
+            <small class="field-hint">Select a previous risk to prefill the form, then change any field you need. A new record will still be created.</small>
+          </div>
           <div class="form-group">
             <label for="fQuarter">Quarter</label>
-            <input type="text" id="fQuarter" placeholder="e.g. Q3" required>
+            <select id="fQuarter" class="locked-quarter" required disabled aria-readonly="true">
+              <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+            </select>
+            <small class="field-hint">Set automatically from today's date.</small>
           </div>
           <div class="form-group">
             <label for="fElement">Risk element</label>
-            <input type="text" id="fElement" placeholder="e.g. Compliance" required>
+            <select id="fElement" required>
+              <option value="">Select a risk element</option>
+              <option>Strategic</option><option>Operational</option><option>Financial</option>
+              <option>Compliance</option><option>Legal / Regulatory</option><option>Technology</option>
+              <option>Cybersecurity</option><option>People</option><option>Reputation</option><option>ESG</option>
+              <option value="__custom__">Other — enter a custom element</option>
+            </select>
+            <input type="text" id="fElementCustom" placeholder="Enter custom risk element" hidden>
           </div>
 
           <div class="form-group full">
@@ -100,7 +117,7 @@
 
         <div class="modal-actions">
           <a href="dashboard.html" class="btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center;">Cancel</a>
-          <button type="submit" class="btn-primary">Register risk</button>
+          <button type="submit" class="btn-primary" id="registerSubmit">Register risk</button>
         </div>
       </form>
     </div>
@@ -134,41 +151,69 @@ function updateRatingPreviews(){
   residualBadge.className = `badge ${ratingClass(residualRating)}`;
 }
 
+function currentCalendarQuarter(date = new Date()){
+  return `Q${Math.floor(date.getMonth() / 3) + 1}`;
+}
+
+const currentQuarter = currentCalendarQuarter();
+const templateRisks = new Map();
+document.getElementById("fQuarter").value = currentQuarter;
+
+async function loadRiskSuggestions(){
+  const templateSelect = document.getElementById("fTemplate");
+  try {
+    const risks = await loadDepartmentRisks();
+    const elements = new Set();
+    risks.forEach(risk => {
+      templateRisks.set(risk.riskId, risk);
+      if (risk.element) elements.add(risk.element);
+
+      const option = document.createElement("option");
+      option.value = risk.riskId;
+      option.textContent = `${risk.no} — ${risk.element}`;
+      templateSelect.appendChild(option);
+    });
+    [...elements].sort().forEach(element => {
+      if ([...document.getElementById("fElement").options].some(option => option.value === element)) return;
+      const option = document.createElement("option");
+      option.value = element;
+      option.textContent = element;
+      document.getElementById("fElement").insertBefore(option, document.getElementById("fElement").lastElementChild);
+    });
+    if (!risks.length) templateSelect.options[0].textContent = "No existing risks yet — create from scratch";
+  } catch (error) {
+    templateSelect.options[0].textContent = "Existing risks unavailable — create from scratch";
+  }
+}
+
+document.getElementById("fTemplate").addEventListener("change", event => {
+  const risk = templateRisks.get(event.target.value);
+  if (!risk) return;
+  fillRiskForm(risk);
+  document.getElementById("fQuarter").value = currentQuarter;
+  updateRatingPreviews();
+});
+
 ["fInherentImpact", "fInherentLikelihood", "fResidualImpact", "fResidualLikelihood"].forEach(id => {
   document.getElementById(id).addEventListener("change", updateRatingPreviews);
 });
 
-document.getElementById("riskForm").addEventListener("submit", (e) => {
+document.getElementById("riskForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-
-  const inherentImpact = document.getElementById("fInherentImpact").value;
-  const inherentLikelihood = document.getElementById("fInherentLikelihood").value;
-  const residualImpact = document.getElementById("fResidualImpact").value;
-  const residualLikelihood = document.getElementById("fResidualLikelihood").value;
-
-  const newRisk = {
-    no: nextRiskNo(),
-    quarter: document.getElementById("fQuarter").value.trim(),
-    element: document.getElementById("fElement").value.trim(),
-    statement: document.getElementById("fStatement").value.trim(),
-    inherentImpact, inherentLikelihood,
-    inherentRating: computeRating(inherentImpact, inherentLikelihood),
-    controlMethods: document.getElementById("fControlMethods").value.trim(),
-    addressedRootCause: document.getElementById("fRootCause").value,
-    controlDocumented: document.getElementById("fDocumented").value,
-    appliedConsistently: document.getElementById("fConsistent").value,
-    controlEffectiveness: document.getElementById("fEffectiveness").value,
-    riskTrend: document.getElementById("fTrend").value,
-    residualImpact, residualLikelihood,
-    residualRating: computeRating(residualImpact, residualLikelihood),
-    status: "active"
-  };
-
-  addRisk(newRisk);
-  window.location.href = "dashboard.html";
+  const button = document.getElementById("registerSubmit");
+  setButtonBusy(button, true, "Registering…");
+  try {
+    await addRisk(riskPayloadFromForm());
+    window.location.href = "dashboard.html?created=1";
+  } catch (error) {
+    setPageNotice(error.message, "error");
+    setButtonBusy(button, false);
+  }
 });
 
 updateRatingPreviews();
+configureRiskElementField();
+loadRiskSuggestions();
 </script>
 </body>
 </html>

@@ -16,37 +16,33 @@
       <div>
         <div class="eyebrow">MSWG - Enterprise Risk Management</div>
         <h1>Archived risk records</h1>
-        <div class="subtitle">Archived risks, visible only to full-visibility viewers</div>
+        <div class="subtitle">Soft-archived records remain retrievable with a permanent audit entry</div>
       </div>
-
     </header>
-<div class="filters" style="margin-bottom:14px;">
-  <select id="filterElement"><option value="">All risk elements</option></select>
-  <select id="filterRating"><option value="">All residual ratings</option></select>
-  <input type="text" id="searchBox" placeholder="Search risk statement...">
-</div>
 
     <div class="panel">
-      <h2>Archive a risk</h2>
-      <p style="font-size:12px; color:var(--text-dim); margin-bottom:12px;">
-        In production, archiving is permission-gated server-side to the 3 named viewers and never
-        deletes data, matching archiveRisk.js. Here, enter a risk number from the dashboard to
-        archive it locally and see it move into the list below.
-      </p>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <input type="text" id="archiveInput" placeholder="Risk no., e.g. 3" style="max-width:160px;">
-        <button class="btn-primary" id="archiveBtn">Archive risk</button>
+      <h2>Archive an active risk</h2>
+      <p class="chart-note">Only a full-visibility viewer can archive. This changes status; it does not delete the record.</p>
+      <div class="archive-controls">
+        <select id="archiveSelect" aria-label="Select active risk"><option value="">Select an active risk</option></select>
+        <button class="btn-primary" id="archiveBtn" disabled>Archive selected risk</button>
       </div>
     </div>
 
-    <div class="panel" style="margin-top:20px;">
-      <h2>Archived risks</h2>
+    <div class="filters" style="margin:20px 0 14px;">
+      <select id="filterElement"><option value="">All risk elements</option></select>
+      <select id="filterRating"><option value="">All residual ratings</option></select>
+      <input type="text" id="searchBox" placeholder="Search archived risks...">
+    </div>
+
+    <div class="panel">
+      <h2>Archive</h2>
       <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>No.</th><th>Element</th><th>Statement</th><th>Residual rating</th></tr></thead>
+          <thead><tr><th>Reference</th><th>Department</th><th>Element</th><th>Statement</th><th>Residual rating</th><th>Archived</th><th>Audit</th></tr></thead>
           <tbody id="archivedBody"></tbody>
         </table>
-        <div class="empty" id="emptyState" style="display:none;">No archived risks yet.</div>
+        <div class="empty" id="emptyState">No archived risks yet.</div>
       </div>
     </div>
   </div>
@@ -59,34 +55,35 @@
 <script src="common.js"></script>
 <script src="sidebar.js"></script>
 <script>
+let archiveRows = [];
+
+function activeRows(){ return archiveRows.filter(risk => risk.status !== "archived"); }
+function archivedRows(){ return archiveRows.filter(risk => risk.status === "archived"); }
+
+function populateArchiveSelect(){
+  const select = document.getElementById("archiveSelect");
+  select.innerHTML = '<option value="">Select an active risk</option>' + activeRows().map(risk =>
+    `<option value="${escapeHtml(risk.riskId)}">${escapeHtml(risk.no)} · ${escapeHtml(window.DEPARTMENT_LABELS[risk.deptId] || risk.deptId)} · ${escapeHtml(risk.element)}</option>`
+  ).join("");
+  document.getElementById("archiveBtn").disabled = true;
+}
+
 function populateFilters(){
-  const all = getOrganizationData().filter(d => d.status === "archived");
-  const elements = [...new Set(all.map(d => d.element))];
-  const ratings = [...new Set(all.map(d => d.residualRating))];
-
-  const eSel = document.getElementById("filterElement");
-  const rSel = document.getElementById("filterRating");
-  const currentE = eSel.value, currentR = rSel.value;
-
-  eSel.innerHTML = '<option value="">All risk elements</option>';
-  elements.forEach(e => eSel.insertAdjacentHTML("beforeend", `<option value="${e}">${e}</option>`));
-
-  rSel.innerHTML = '<option value="">All residual ratings</option>';
-  ratings.forEach(r => rSel.insertAdjacentHTML("beforeend", `<option value="${r}">${r}</option>`));
-
-  if (elements.includes(currentE)) eSel.value = currentE;
-  if (ratings.includes(currentR)) rSel.value = currentR;
+  const rows = archivedRows();
+  const elements = [...new Set(rows.map(risk => risk.element))].sort();
+  const ratings = [...new Set(rows.map(risk => risk.residualRating))];
+  document.getElementById("filterElement").innerHTML = '<option value="">All risk elements</option>' + elements.map(value => `<option>${escapeHtml(value)}</option>`).join("");
+  document.getElementById("filterRating").innerHTML = '<option value="">All residual ratings</option>' + ratings.map(value => `<option>${escapeHtml(value)}</option>`).join("");
 }
 
 function getFiltered(){
-  const e = document.getElementById("filterElement").value;
-  const r = document.getElementById("filterRating").value;
-  const s = document.getElementById("searchBox").value.toLowerCase();
-  return getOrganizationData().filter(d =>
-    d.status === "archived" &&
-    (!e || d.element === e) &&
-    (!r || d.residualRating === r) &&
-    (!s || d.statement.toLowerCase().includes(s))
+  const element = document.getElementById("filterElement").value;
+  const rating = document.getElementById("filterRating").value;
+  const search = document.getElementById("searchBox").value.toLowerCase();
+  return archivedRows().filter(risk =>
+    (!element || risk.element === element) &&
+    (!rating || risk.residualRating === rating) &&
+    (!search || `${risk.element} ${risk.statement} ${risk.no}`.toLowerCase().includes(search))
   );
 }
 
@@ -94,44 +91,60 @@ function renderArchived(){
   const rows = getFiltered();
   const body = document.getElementById("archivedBody");
   const empty = document.getElementById("emptyState");
-
-  if (!rows.length){
-    body.innerHTML = "";
-    empty.style.display = "block";
-    return;
-  }
-  empty.style.display = "none";
-  body.innerHTML = rows.map(r => `
-    <tr>
-      <td>${r.no}</td>
-      <td>${r.element}</td>
-      <td style="max-width:400px;">${r.statement}</td>
-      <td><span class="badge ${ratingClass(r.residualRating)}">${r.residualRating}</span></td>
-    </tr>
-  `).join("");
+  empty.style.display = rows.length ? "none" : "block";
+  body.innerHTML = rows.map(risk => `<tr>
+    <td>${escapeHtml(risk.no)}</td>
+    <td>${escapeHtml(window.DEPARTMENT_LABELS[risk.deptId] || risk.deptId)}</td>
+    <td>${escapeHtml(risk.element)}</td>
+    <td style="max-width:360px;">${escapeHtml(risk.statement)}</td>
+    <td><span class="badge ${ratingClass(risk.residualRating)}">${escapeHtml(risk.residualRating)}</span></td>
+    <td>${formatDateTime(risk.archivedAt)}</td>
+    <td><a class="table-action" href="history.html?risk=${encodeURIComponent(risk.riskId)}">History</a></td>
+  </tr>`).join("");
 }
 
+document.getElementById("archiveSelect").addEventListener("change", event => {
+  document.getElementById("archiveBtn").disabled = !event.target.value;
+});
 document.getElementById("filterElement").addEventListener("change", renderArchived);
 document.getElementById("filterRating").addEventListener("change", renderArchived);
 document.getElementById("searchBox").addEventListener("input", renderArchived);
 
-document.getElementById("archiveBtn").addEventListener("click", () => {
-  const riskNumber = Number.parseInt(document.getElementById("archiveInput").value, 10);
-  if (!Number.isInteger(riskNumber)) {
-    alert("Enter a valid risk number.");
-    return;
+document.getElementById("archiveBtn").addEventListener("click", async () => {
+  const riskId = document.getElementById("archiveSelect").value;
+  const risk = activeRows().find(item => item.riskId === riskId);
+  if (!risk || !window.confirm(`Archive ${risk.no}? The record will remain retrievable.`)) return;
+  const button = document.getElementById("archiveBtn");
+  setButtonBusy(button, true, "Archiving…");
+  try {
+    await archiveRisk(risk.deptId, risk.riskId);
+    archiveRows = await loadOrganizationRisks({ includeArchived: true });
+    populateArchiveSelect();
+    populateFilters();
+    renderArchived();
+    setPageNotice(`${risk.no} was archived and its audit entry was saved.`, "success");
+  } catch (error) {
+    setPageNotice(error.message, "error");
+  } finally {
+    setButtonBusy(button, false);
+    button.disabled = !document.getElementById("archiveSelect").value;
   }
-  if (!archiveRisk(riskNumber)) {
-    alert("Risk not found or you do not have archive permission.");
-    return;
-  }
-  document.getElementById("archiveInput").value = "";
-  populateFilters();
-  renderArchived();
 });
 
-populateFilters();
-renderArchived();
+async function initialiseArchive(){
+  setPageNotice("Loading active and archived records…", "info");
+  try {
+    archiveRows = await loadOrganizationRisks({ includeArchived: true });
+    populateArchiveSelect();
+    populateFilters();
+    renderArchived();
+    clearPageNotice();
+  } catch (error) {
+    setPageNotice(`Could not load the archive: ${error.message}`, "error");
+  }
+}
+
+initialiseArchive();
 </script>
 </body>
 </html>

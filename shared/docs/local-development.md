@@ -57,6 +57,14 @@ node RISKREGISTER\tools\test-local-dynamodb.js
 
 The integration test covers create, department isolation, full-visibility denial, transactional update, audit history, privileged soft archive, and archived-record filtering. It leaves the archived local test record in the persistent database as evidence.
 
+Run the Risk Register browser and its local API adapter:
+
+```powershell
+node RISKREGISTER\tools\serve-risk-local.js
+```
+
+Open `http://localhost:3200/RISKREGISTER/frontend/dashboard.html`. The server creates missing tables, serves the existing frontend, converts local test roles into verified authorizer claims, and invokes the same six handlers used by the AWS HTTP API.
+
 Stopping and starting the container is safe. Removing the container is also safe only while the mounted `dynamodb-data` folder is retained. Deleting that folder deletes the local database.
 
 ## Automated tests
@@ -71,8 +79,8 @@ These tests are separate from `node RISKREGISTER\tools\test-local-dynamodb.js`. 
 
 The old `RISKREGISTER/backend/test*.js` files are historical manual harnesses from the initial prototype. They are not part of the automated suite and should not be used as authorization evidence.
 
-## Consolidated frontend
+## Consolidated Risk Register frontend
 
-Use `RISKREGISTER/frontend`. `config.js` contains local environment values and mock claims only. A deployment must replace it with the selected stack outputs; `config.prod.example.js` shows the required shape.
+Use `RISKREGISTER/frontend`. Its risk records are API-backed; browser localStorage is used only for non-record preferences such as the collapsed sidebar and selected local test role. A deployment must replace local `config.js` values with the selected stack outputs; `config.prod.example.js` shows the required shape.
 
-To test a different local identity, set `mswg_rr_mock_claims` in localStorage to a JSON claim object. This controls UI display only. Backend tests and deployed API authorization always use verified authorizer claims.
+Use the **Test as** selector to exercise a full-visibility user, an IT HOD, or a Corporate Monitoring HOD. The local API adapter applies the matching verified claims server-side; production always uses Cognito/API Gateway claims.

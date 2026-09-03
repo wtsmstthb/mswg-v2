@@ -102,6 +102,7 @@ function getIdentity(event) {
   return Object.freeze({
     userId: userId.trim(),
     username: claims["cognito:username"] || claims.email || userId.trim(),
+    displayName: claims.name || claims["cognito:username"] || claims.email || userId.trim(),
     departmentId: resolveDepartmentId(claims, groups),
     applicationRole: claims["custom:application_role"] || "department-user",
     groups: Object.freeze(groups),
@@ -140,4 +141,3 @@ module.exports = {
   requireFullVisibility,
   validateDepartmentId
 };
-

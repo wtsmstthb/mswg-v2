@@ -31,7 +31,9 @@
     if (window.APP_CONFIG?.environment !== "local") return null;
     try {
       const stored = localStorage.getItem("mswg_rr_mock_claims");
-      return stored ? JSON.parse(stored) : window.APP_CONFIG.localMockClaims;
+      if (stored) return JSON.parse(stored);
+      const role = localStorage.getItem("mswg_rr_local_role") || "viewer";
+      return window.APP_CONFIG.localRoles?.[role] || window.APP_CONFIG.localMockClaims;
     } catch {
       return window.APP_CONFIG.localMockClaims;
     }

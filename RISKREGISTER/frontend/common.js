@@ -1,17 +1,11 @@
-// common.js
-// Shared data model, storage helpers, and rating logic for the MSWG risk register.
-// All pages load this file so the DATA array and rating logic live in exactly one place.
+// Shared Risk Register model. Current records live in DynamoDB; this file keeps
+// only the current page's in-memory view and maps API fields to the existing UI.
 
-const RATING_SCORE = { "Low": 1, "Medium Low": 2, "Medium High": 3, "High": 4 };
-const STORAGE_KEY = "mswg_rr_added_risks";
+const RATING_SCORE = Object.freeze({ "Low": 1, "Medium Low": 2, "Medium High": 3, "High": 4 });
+const RISK_STATE = { department: [], organization: [], loaded: false };
 
 function ratingClass(rating){
-  return {
-    "High": "high",
-    "Medium High": "medhigh",
-    "Medium Low": "medlow",
-    "Low": "low"
-  }[rating] || "";
+  return { "High": "high", "Medium High": "medhigh", "Medium Low": "medlow", "Low": "low" }[rating] || "";
 }
 
 function bucketFromScore(score){
@@ -42,141 +36,178 @@ function trendArrow(trend){
   return "Stable";
 }
 
-const DATA = [
-  {
-    no: 1, deptId: "corp-monitoring", quarter: "Q2", element: "Reputational",
-    statement: "MSWG's independence and credibility are at risk if perceived as biased or influenced by specific stakeholders, potentially damaging its role as an impartial advocate.",
-    inherentImpact: "High", inherentLikelihood: "High", inherentRating: "High",
-    controlMethods: "Implement transparent voting policy.\nConduct independent reviews of assessments.\nManage conflict of interest (board members, corporate monitoring team).\nEngage diverse stakeholders regularly.\nStrengthen public communication on MSWG's objectivity.\nDevelop proactive media engagement strategies.\nNo misinformation and incompetencies of analysts.\nImmediate response mechanism to manage the circulation of misinformation.",
-    addressedRootCause: "Partially", controlDocumented: "Yes", appliedConsistently: "Yes",
-    controlEffectiveness: "Effective", riskTrend: "Stable",
-    residualImpact: "High", residualLikelihood: "High", residualRating: "High", status: "active"
-  },
-  {
-    no: 2, deptId: "finance-admin", quarter: "Q2", element: "Financial",
-    statement: "MSWG's reliance on the CMDF grant risks its independence if alternative funding sources are required, potentially compromising impartiality.",
-    inherentImpact: "High", inherentLikelihood: "High", inherentRating: "High",
-    controlMethods: "Implement programmes under Vision 28 for financial sustainability.\nAchieve 75:25 funding ratio from CMDF under Vision 28.\nDiversify income streams while maintaining independence.",
-    addressedRootCause: "Yes", controlDocumented: "Partially", appliedConsistently: "Partially",
-    controlEffectiveness: "Partially Effective", riskTrend: "Stable",
-    residualImpact: "High", residualLikelihood: "High", residualRating: "High", status: "active"
-  },
-  {
-    no: 3, deptId: "corp-monitoring", quarter: "Q2", element: "Well-being and Security Risks for Analysts",
-    statement: "Analysts may face personal and professional retaliation due to their critical corporate governance work.",
-    inherentImpact: "High", inherentLikelihood: "Low", inherentRating: "Medium Low",
-    controlMethods: "Ensure issues raised are objective, based on publicly available information and not personal.\nOffer training on personal security and crisis management.\nProvide legal counsel for analysts under threat.\nTake legal countermeasures when necessary.",
-    addressedRootCause: "Partially", controlDocumented: "Yes", appliedConsistently: "Partially",
-    controlEffectiveness: "Not Effective", riskTrend: "Stable",
-    residualImpact: "High", residualLikelihood: "Low", residualRating: "Medium Low", status: "active"
-  },
-  {
-    no: 4, deptId: "corp-governance", quarter: "Q2", element: "Legal",
-    statement: "MSWG may face lawsuits over commentaries or public statements.",
-    inherentImpact: "High", inherentLikelihood: "Low", inherentRating: "Medium Low",
-    controlMethods: "Restrict public commentary to the CEO representing the views of MSWG, not individual.\nEnsure all comments are based on publicly available information.",
-    addressedRootCause: "Yes", controlDocumented: "Yes", appliedConsistently: "Yes",
-    controlEffectiveness: "Effective", riskTrend: "Stable",
-    residualImpact: "High", residualLikelihood: "Low", residualRating: "Medium Low", status: "active"
-  },
-  {
-    no: 5, deptId: "corp-resources", quarter: "Q2", element: "Human Resource",
-    statement: "Challenges in recruiting and retaining top analysts due to competitive compensation levels.",
-    inherentImpact: "High", inherentLikelihood: "Low", inherentRating: "Medium Low",
-    controlMethods: "Enhance non-financial employee value propositions.\nOffer professional growth opportunities and flexible work arrangements.\nRecognise high performance and mentorship.",
-    addressedRootCause: "Partially", controlDocumented: "Yes", appliedConsistently: "Yes",
-    controlEffectiveness: "Partially Effective", riskTrend: "Stable",
-    residualImpact: "High", residualLikelihood: "Low", residualRating: "Medium Low", status: "active"
-  },
-  {
-    no: 6, deptId: "it-training", quarter: "Q2", element: "Operational and Cybersecurity",
-    statement: "Operational disruptions or cyberattacks may hinder MSWG's effectiveness and credibility.",
-    inherentImpact: "High", inherentLikelihood: "High", inherentRating: "High",
-    controlMethods: "Streamline internal workflows and invest in automation.\nImplement robust cybersecurity protocols and employee training.\nConduct regular cybersecurity audits and consult external experts.\nEnsure all software updates are current.\nRestricting WhatsApp access within the MSWG network.\nMigrating all internal communication from WhatsApp to Microsoft Teams.",
-    addressedRootCause: "No", controlDocumented: "Yes", appliedConsistently: "Partially",
-    controlEffectiveness: "Not Effective", riskTrend: "Increasing",
-    residualImpact: "High", residualLikelihood: "High", residualRating: "High", status: "active"
-  },
-  {
-    no: 7, deptId: "corp-governance", quarter: "Q2", element: "Compliance",
-    statement: "Non-compliance with regulations could lead to sanctions or reputational damage.",
-    inherentImpact: "Medium Low", inherentLikelihood: "Medium Low", inherentRating: "Medium Low",
-    controlMethods: "Monitor regulatory changes and update policies accordingly.\nEstablish a robust compliance framework and staff training.",
-    addressedRootCause: "Partially", controlDocumented: "Yes", appliedConsistently: "Yes",
-    controlEffectiveness: "Partially Effective", riskTrend: "Stable",
-    residualImpact: "Medium Low", residualLikelihood: "Medium Low", residualRating: "Medium Low", status: "active"
-  },
-  {
-    no: 8, deptId: "creative-comms", quarter: "Q2", element: "Dilution of Presence and Influence",
-    statement: "MSWG's influence in shareholder advocacy may weaken amid a growing number of competing bodies and initiatives.",
-    inherentImpact: "Medium High", inherentLikelihood: "Medium Low", inherentRating: "Medium High",
-    controlMethods: "Strengthen strategic partnerships with regulators and industry bodies.\nIncrease visibility through thought leadership and public engagement.",
-    addressedRootCause: "Partially", controlDocumented: "Partially", appliedConsistently: "Partially",
-    controlEffectiveness: "Partially Effective", riskTrend: "Stable",
-    residualImpact: "Medium High", residualLikelihood: "Medium Low", residualRating: "Medium High", status: "active"
+function escapeHtml(value){
+  return String(value ?? "").replace(/[&<>'"]/g, character => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+  })[character]);
+}
+
+function formatDateTime(value){
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? escapeHtml(value) : new Intl.DateTimeFormat("en-MY", {
+    dateStyle: "medium", timeStyle: "short"
+  }).format(date);
+}
+
+function mapRisk(item, index = 0){
+  const fallbackId = String(item.risk_id || index + 1).toUpperCase();
+  const inherentImpact = item.inherent_impact || item.impact || "Low";
+  const inherentLikelihood = item.inherent_likelihood || item.likelihood || "Low";
+  const residualImpact = item.residual_impact || item.impact || "Low";
+  const residualLikelihood = item.residual_likelihood || item.likelihood || "Low";
+  return {
+    no: item.risk_reference || `RR-${fallbackId.slice(0, 8)}-${fallbackId.slice(-4)}`,
+    riskId: item.risk_id,
+    deptId: item.dept_id,
+    quarter: item.quarter || "—",
+    year: item.year,
+    element: item.element || item.title || "Untitled risk",
+    statement: item.statement || item.description || "",
+    inherentImpact,
+    inherentLikelihood,
+    inherentRating: item.inherent_rating || computeRating(inherentImpact, inherentLikelihood),
+    controlMethods: item.control_methods || "",
+    addressedRootCause: item.addressed_root_cause || "Partially",
+    controlDocumented: item.control_documented || "Partially",
+    appliedConsistently: item.applied_consistently || "Partially",
+    controlEffectiveness: item.control_effectiveness || "Partially Effective",
+    riskTrend: item.risk_trend || "Stable",
+    residualImpact,
+    residualLikelihood,
+    residualRating: item.residual_rating || computeRating(residualImpact, residualLikelihood),
+    status: item.status || "active",
+    createdBy: item.created_by,
+    createdByName: item.created_by_name || item.created_by || "—",
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+    archivedAt: item.archived_at,
+    archivedBy: item.archived_by,
+    recordVersion: item.record_version || 1,
+    raw: item
+  };
+}
+
+function sortRisks(items){
+  return [...items].sort((left, right) =>
+    String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
+  );
+}
+
+async function loadDepartmentRisks(){
+  const payload = await window.RISK_API.listMine();
+  RISK_STATE.department = sortRisks((payload.items || []).map(mapRisk));
+  RISK_STATE.loaded = true;
+  return RISK_STATE.department;
+}
+
+async function loadOrganizationRisks(options = {}){
+  if (!window.APP_CONTEXT.canViewAll) return loadDepartmentRisks();
+  const payload = await window.RISK_API.listAll(options);
+  RISK_STATE.organization = sortRisks((payload.items || []).map(mapRisk));
+  RISK_STATE.loaded = true;
+  return RISK_STATE.organization;
+}
+
+function getDepartmentData(){ return RISK_STATE.department; }
+function getOrganizationData(){ return RISK_STATE.organization; }
+function getAllData(){ return RISK_STATE.department; }
+
+function riskElementFromForm(){
+  const selection = document.getElementById("fElement").value;
+  const custom = document.getElementById("fElementCustom");
+  return selection === "__custom__" ? custom.value.trim() : selection.trim();
+}
+
+function setRiskElementField(value){
+  const select = document.getElementById("fElement");
+  const custom = document.getElementById("fElementCustom");
+  const matchingOption = [...select.options].some(option => option.value === value);
+  select.value = matchingOption ? value : "__custom__";
+  custom.value = matchingOption ? "" : value;
+  custom.hidden = matchingOption;
+  custom.required = !matchingOption;
+}
+
+function configureRiskElementField(){
+  const select = document.getElementById("fElement");
+  const custom = document.getElementById("fElementCustom");
+  const sync = () => {
+    const isCustom = select.value === "__custom__";
+    custom.hidden = !isCustom;
+    custom.required = isCustom;
+    if (isCustom) custom.focus();
+  };
+  select.addEventListener("change", sync);
+  sync();
+}
+
+function riskPayloadFromForm(){
+  return {
+    quarter: document.getElementById("fQuarter").value.trim().toUpperCase(),
+    element: riskElementFromForm(),
+    statement: document.getElementById("fStatement").value.trim(),
+    inherent_impact: document.getElementById("fInherentImpact").value,
+    inherent_likelihood: document.getElementById("fInherentLikelihood").value,
+    control_methods: document.getElementById("fControlMethods").value.trim(),
+    addressed_root_cause: document.getElementById("fRootCause").value,
+    control_documented: document.getElementById("fDocumented").value,
+    applied_consistently: document.getElementById("fConsistent").value,
+    control_effectiveness: document.getElementById("fEffectiveness").value,
+    risk_trend: document.getElementById("fTrend").value,
+    residual_impact: document.getElementById("fResidualImpact").value,
+    residual_likelihood: document.getElementById("fResidualLikelihood").value
+  };
+}
+
+function fillRiskForm(risk){
+  document.getElementById("fQuarter").value = risk.quarter;
+  setRiskElementField(risk.element);
+  document.getElementById("fStatement").value = risk.statement;
+  document.getElementById("fInherentImpact").value = risk.inherentImpact;
+  document.getElementById("fInherentLikelihood").value = risk.inherentLikelihood;
+  document.getElementById("fControlMethods").value = risk.controlMethods;
+  document.getElementById("fRootCause").value = risk.addressedRootCause;
+  document.getElementById("fDocumented").value = risk.controlDocumented;
+  document.getElementById("fConsistent").value = risk.appliedConsistently;
+  document.getElementById("fEffectiveness").value = risk.controlEffectiveness;
+  document.getElementById("fTrend").value = risk.riskTrend;
+  document.getElementById("fResidualImpact").value = risk.residualImpact;
+  document.getElementById("fResidualLikelihood").value = risk.residualLikelihood;
+}
+
+async function addRisk(risk){ return window.RISK_API.create(risk); }
+async function updateRisk(riskId, risk){ return window.RISK_API.update(riskId, risk); }
+async function archiveRisk(departmentId, riskId){ return window.RISK_API.archive(departmentId, riskId); }
+async function getRiskHistory(riskId){ return window.RISK_API.history(riskId); }
+
+function setPageNotice(message, type = "info"){
+  let notice = document.getElementById("pageNotice");
+  if (!notice) {
+    notice = document.createElement("div");
+    notice.id = "pageNotice";
+    const content = document.querySelector(".page-content") || document.querySelector(".main") || document.body;
+    content.insertBefore(notice, content.firstChild);
   }
-];
+  notice.className = `page-notice ${type}`;
+  notice.textContent = message;
+  notice.hidden = !message;
+}
 
-function loadAddedRisks(){
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
+function clearPageNotice(){ setPageNotice(""); }
+
+function setButtonBusy(button, busy, busyLabel = "Saving…"){
+  if (!button) return;
+  if (busy) {
+    button.dataset.normalLabel = button.textContent;
+    button.textContent = busyLabel;
+    button.disabled = true;
+  } else {
+    button.textContent = button.dataset.normalLabel || button.textContent;
+    button.disabled = false;
   }
 }
 
-function saveAddedRisks(list){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
-
-function getOrganizationData(){
-  const added = loadAddedRisks();
-  const addedNos = new Set(added.map(r => r.no));
-  const baseNotOverridden = DATA.filter(r => !addedNos.has(r.no));
-  return [...baseNotOverridden, ...added];
-}
-
-function getDepartmentData(){
-  return getOrganizationData().filter(risk => risk.deptId === window.APP_CONTEXT.departmentId);
-}
-
-function getAllData(){
-  return getDepartmentData();
-}
-
-function nextRiskNo(){
-  const all = getOrganizationData();
-  return all.length ? Math.max(...all.map(d => d.no)) + 1 : 1;
-}
-
-function addRisk(risk){
-  const added = loadAddedRisks();
-  added.push({
-    ...risk,
-    deptId: window.APP_CONTEXT.departmentId,
-    createdBy: window.APP_CONTEXT.userId
-  });
-  saveAddedRisks(added);
-}
-
-function archiveRisk(no){
-  if (!window.APP_CONTEXT.canArchive) return false;
-  const added = loadAddedRisks();
-  const idx = added.findIndex(r => r.no === no);
-  if (idx !== -1) {
-    added[idx].status = "archived";
-    saveAddedRisks(added);
-    return true;
-  }
-  // Base DATA risks are read-only in this prototype (no backend yet),
-  // so archiving one copies it into localStorage as an archived override.
-  const base = DATA.find(r => r.no === no);
-  if (base) {
-    const copy = { ...base, status: "archived" };
-    added.push(copy);
-    saveAddedRisks(added);
-    return true;
-  }
-  return false;
+function formatFieldName(field){
+  return String(field || "").replace(/_/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
 }

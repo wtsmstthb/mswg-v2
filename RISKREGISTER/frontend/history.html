@@ -15,93 +15,128 @@
     <header>
       <div>
         <div class="eyebrow">MSWG - Enterprise Risk Management</div>
-        <h1>Risk movement history</h1>
-        <div class="subtitle">Trend and control effectiveness across the register</div>
+        <h1>Risk audit history</h1>
+        <div class="subtitle">A permanent record of every saved change and archive action</div>
       </div>
       <div class="filters">
-  <select id="filterElement"><option value="">All risk elements</option></select>
-  <select id="filterTrend">
-    <option value="">All trends</option>
-    <option>Increasing</option>
-    <option>Stable</option>
-    <option>Decreasing</option>
-  </select>
-  <input type="text" id="searchBox" placeholder="Search risk statement...">
-</div>
+        <select id="riskSelect" aria-label="Select risk"><option value="">Select a risk</option></select>
+      </div>
     </header>
 
-    <div class="panel">
-      <h2>Risk trend overview</h2>
-      <p style="font-size:12px; color:var(--text-dim); margin-bottom:16px;">
-        This shows the current trend recorded on each risk. Rating-change-over-time tracking
-        (quarter to quarter, year to year) requires the backend history table and is not yet
-        connected in this prototype.
-      </p>
+    <div class="panel history-summary" id="riskSummary" hidden></div>
+
+    <div class="panel" style="margin-top:20px;">
+      <h2>Audit trail</h2>
+      <p class="chart-note">Entries are written transactionally with the database change, so the record and its history cannot drift apart.</p>
       <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th>No.</th><th>Element</th><th>Quarter</th><th>Trend</th><th>Effectiveness</th><th>Residual rating</th></tr>
+            <tr><th>Date and time</th><th>Action</th><th>Changed by</th><th>Fields</th><th>Rating movement</th><th>Details</th></tr>
           </thead>
           <tbody id="historyBody"></tbody>
         </table>
+        <div class="empty" id="emptyState">Select a risk to view its history.</div>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-  window.CURRENT_PAGE = "history.html";
-</script>
+<script>window.CURRENT_PAGE = "history.html";</script>
 <script src="config.js"></script>
 <script src="role-config.js"></script>
 <script src="api-client.js"></script>
 <script src="common.js"></script>
 <script src="sidebar.js"></script>
 <script>
-function populateFilters(){
-  const all = getAllData().filter(d => d.status !== "archived");
-  const elements = [...new Set(all.map(d => d.element))];
+let availableRisks = [];
 
-  const eSel = document.getElementById("filterElement");
-  const currentE = eSel.value;
-  eSel.innerHTML = '<option value="">All risk elements</option>';
-  elements.forEach(e => eSel.insertAdjacentHTML("beforeend", `<option value="${e}">${e}</option>`));
-  if (elements.includes(currentE)) eSel.value = currentE;
+function renderRiskOptions(){
+  const select = document.getElementById("riskSelect");
+  select.innerHTML = '<option value="">Select a risk</option>' + availableRisks.map(risk =>
+    `<option value="${escapeHtml(risk.riskId)}">${escapeHtml(risk.no)} · ${escapeHtml(risk.element)}${window.APP_CONTEXT.canViewAll ? ` · ${escapeHtml(window.DEPARTMENT_LABELS[risk.deptId] || risk.deptId)}` : ""}</option>`
+  ).join("");
 }
 
-function getFiltered(){
-  const e = document.getElementById("filterElement").value;
-  const t = document.getElementById("filterTrend").value;
-  const s = document.getElementById("searchBox").value.toLowerCase();
-  return getAllData().filter(d =>
-    d.status !== "archived" &&
-    (!e || d.element === e) &&
-    (!t || d.riskTrend === t) &&
-    (!s || d.statement.toLowerCase().includes(s))
-  );
+function renderSummary(risk){
+  const summary = document.getElementById("riskSummary");
+  if (!risk) { summary.hidden = true; return; }
+  summary.hidden = false;
+  summary.innerHTML = `
+    <div class="record-summary-grid">
+      <div><span>Risk reference</span><strong>${escapeHtml(risk.no)}</strong></div>
+      <div><span>Department</span><strong>${escapeHtml(window.DEPARTMENT_LABELS[risk.deptId] || risk.deptId)}</strong></div>
+      <div><span>Current version</span><strong>Version ${risk.recordVersion}</strong></div>
+      <div><span>Last updated</span><strong>${formatDateTime(risk.updatedAt)}</strong></div>
+    </div>
+    <p class="history-statement">${escapeHtml(risk.statement)}</p>`;
 }
 
-function renderHistory(){
+function renderHistoryEntries(items){
   const body = document.getElementById("historyBody");
-  const rows = getFiltered();
-  body.innerHTML = rows.map(r => `
-    <tr>
-      <td>${r.no}</td>
-      <td>${r.element}</td>
-      <td>${r.quarter}</td>
-      <td class="trend ${trendClass(r.riskTrend)}">${trendArrow(r.riskTrend)}</td>
-      <td>${r.controlEffectiveness}</td>
-      <td><span class="badge ${ratingClass(r.residualRating)}">${r.residualRating}</span></td>
-    </tr>
-  `).join("");
+  const empty = document.getElementById("emptyState");
+  if (!items.length) {
+    body.innerHTML = "";
+    empty.textContent = "No edits have been saved for this risk yet. The original record remains in the current register.";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  body.innerHTML = [...items].reverse().map(entry => {
+    const fields = entry.changed_fields || [];
+    const detailRows = fields.map(field => `<div><strong>${escapeHtml(formatFieldName(field))}</strong><span>${escapeHtml(entry.before?.[field] ?? "—")} → ${escapeHtml(entry.after?.[field] ?? "—")}</span></div>`).join("");
+    const rating = entry.old_rating || entry.new_rating
+      ? `${escapeHtml(entry.old_rating || "—")} → ${escapeHtml(entry.new_rating || "—")}`
+      : "—";
+    return `<tr>
+      <td>${formatDateTime(entry.changed_at)}</td>
+      <td><span class="status-pill ${entry.change_type === "archive" ? "status-archived" : "status-active"}">${escapeHtml(entry.change_type || "update")}</span></td>
+      <td>${escapeHtml(entry.changed_by || "—")}</td>
+      <td>${fields.map(formatFieldName).map(escapeHtml).join(", ")}</td>
+      <td>${rating}</td>
+      <td><details class="change-details"><summary>View changes</summary>${detailRows}</details></td>
+    </tr>`;
+  }).join("");
 }
 
-document.getElementById("filterElement").addEventListener("change", renderHistory);
-document.getElementById("filterTrend").addEventListener("change", renderHistory);
-document.getElementById("searchBox").addEventListener("input", renderHistory);
+async function selectRisk(riskId){
+  const risk = availableRisks.find(item => item.riskId === riskId);
+  renderSummary(risk);
+  if (!risk) { renderHistoryEntries([]); return; }
+  setPageNotice("Loading audit history…", "info");
+  try {
+    const payload = await getRiskHistory(risk.riskId);
+    clearPageNotice();
+    renderHistoryEntries(payload.items || []);
+    const url = new URL(window.location.href);
+    url.searchParams.set("risk", risk.riskId);
+    window.history.replaceState({}, "", url);
+  } catch (error) {
+    setPageNotice(`Could not load history: ${error.message}`, "error");
+    renderHistoryEntries([]);
+  }
+}
 
-populateFilters();
-renderHistory();
+document.getElementById("riskSelect").addEventListener("change", event => selectRisk(event.target.value));
+
+async function initialiseHistory(){
+  setPageNotice("Loading risk records…", "info");
+  try {
+    availableRisks = window.APP_CONTEXT.canViewAll
+      ? await loadOrganizationRisks({ includeArchived: true })
+      : await loadDepartmentRisks();
+    renderRiskOptions();
+    clearPageNotice();
+    const requested = new URLSearchParams(window.location.search).get("risk");
+    if (requested && availableRisks.some(risk => risk.riskId === requested)) {
+      document.getElementById("riskSelect").value = requested;
+      await selectRisk(requested);
+    }
+  } catch (error) {
+    setPageNotice(`Could not load risks: ${error.message}`, "error");
+  }
+}
+
+initialiseHistory();
 </script>
 </body>
 </html>

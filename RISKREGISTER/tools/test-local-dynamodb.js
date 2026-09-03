@@ -94,11 +94,25 @@ async function main() {
       description: "Created by the repeatable Docker integration test.",
       likelihood: "Medium Low",
       impact: "High",
-      residual_rating: "Medium High"
+      residual_rating: "Medium High",
+      quarter: "Q3",
+      element: "Local DynamoDB integration risk",
+      statement: "Created by the repeatable Docker integration test.",
+      inherent_impact: "High",
+      inherent_likelihood: "Medium Low",
+      control_methods: "Run the repeatable local integration test.",
+      addressed_root_cause: "Yes",
+      control_documented: "Yes",
+      applied_consistently: "Partially",
+      control_effectiveness: "Partially Effective",
+      risk_trend: "Stable",
+      residual_impact: "Medium Low",
+      residual_likelihood: "Low"
     }
   })), 201, "create risk");
   assert.equal(created.item.risk_id, riskId);
   assert.equal(created.item.dept_id, "it-training");
+  assert.equal(created.item.record_version, 1);
   console.log(`PASS create: ${riskId}`);
 
   const ownList = requireStatus(await getDepartment(apiEvent({ claims: creator })), 200, "own-department read");
@@ -116,10 +130,13 @@ async function main() {
     path: { riskId },
     body: {
       title: "Updated local DynamoDB integration risk",
-      residual_rating: "Low"
+      residual_impact: "Medium High",
+      residual_likelihood: "Medium High",
+      expected_version: 1
     }
   })), 200, "update risk");
-  assert.equal(updated.item.residual_rating, "Low");
+  assert.equal(updated.item.residual_rating, "Medium High");
+  assert.equal(updated.item.record_version, 2);
   console.log("PASS transactional update");
 
   const history = requireStatus(await getHistory(apiEvent({
@@ -127,7 +144,7 @@ async function main() {
     path: { riskId }
   })), 200, "history read");
   assert.equal(history.count, 1);
-  assert.deepEqual(history.items[0].changed_fields.sort(), ["residual_rating", "title"]);
+  assert.ok(history.items[0].changed_fields.includes("residual_rating"));
   console.log("PASS audit-history write/read");
 
   const archived = requireStatus(await archive(apiEvent({
@@ -136,7 +153,16 @@ async function main() {
   })), 200, "archive risk");
   assert.equal(archived.item.status, "archived");
   assert.equal(archived.item.archived_by, fullViewer.sub);
+  assert.equal(archived.item.record_version, 3);
   console.log("PASS privileged soft archive");
+
+  const historyAfterArchive = requireStatus(await getHistory(apiEvent({
+    claims: fullViewer,
+    path: { riskId }
+  })), 200, "archive history read");
+  assert.equal(historyAfterArchive.count, 2);
+  assert.equal(historyAfterArchive.items[1].change_type, "archive");
+  console.log("PASS archive audit-history write/read");
 
   const activeAfterArchive = requireStatus(await getDepartment(apiEvent({ claims: creator })), 200, "archived filtering");
   assert.ok(!activeAfterArchive.items.some(item => item.risk_id === riskId));

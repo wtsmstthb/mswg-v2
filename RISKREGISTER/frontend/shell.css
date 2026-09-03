@@ -18,6 +18,64 @@
   --sans: 'Inter', sans-serif;
 }
 
+/* Persistent-data workflow states */
+.page-notice{
+  margin:0 0 16px;
+  padding:11px 14px;
+  border:1px solid #c9d8f3;
+  border-radius:12px;
+  background:#f4f8ff;
+  color:#34517c;
+  font-size:12px;
+  font-weight:600;
+}
+.page-notice.success{border-color:#bce8d6; background:#effbf6; color:#177a55;}
+.page-notice.error{border-color:#f2c4c0; background:#fff4f3; color:#a83c34;}
+.local-role-wrap{display:flex; align-items:center; gap:8px; color:var(--text-dim); font-size:10px; font-weight:700;}
+.local-role-wrap select{min-width:128px; width:auto; padding:8px 28px 8px 10px; font-size:11px; border-radius:12px;}
+.row-actions{display:flex; gap:6px; align-items:center; white-space:nowrap;}
+.table-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:28px;
+  padding:5px 9px;
+  border:1px solid #d9e1ef;
+  border-radius:9px;
+  background:#fff;
+  color:#2b4c7e;
+  font:inherit;
+  font-size:10px;
+  font-weight:700;
+  text-decoration:none;
+  cursor:pointer;
+}
+.table-action:hover{border-color:#a9bde0; background:#f4f7fe;}
+.archive-controls{display:flex; gap:10px; align-items:center;}
+.archive-controls select{max-width:650px;}
+.history-summary{padding:18px 20px;}
+.record-summary-grid{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px;}
+.record-summary-grid div{display:flex; flex-direction:column; gap:5px;}
+.record-summary-grid span{color:var(--text-dim); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;}
+.record-summary-grid strong{color:var(--text); font-size:12px;}
+.history-statement{margin-top:15px; padding-top:14px; border-top:1px solid var(--border); color:var(--text-dim); font-size:12px; line-height:1.6;}
+.status-pill{display:inline-flex; padding:4px 8px; border-radius:999px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;}
+.status-pill.status-active{background:#eaf8f2; color:#15845b;}
+.status-pill.status-archived{background:#eef1f6; color:#5b6780;}
+.change-details summary{color:#2b4c7e; cursor:pointer; font-size:10px; font-weight:700; white-space:nowrap;}
+.change-details div{display:grid; gap:2px; min-width:230px; margin-top:7px; padding-top:7px; border-top:1px solid var(--border);}
+.change-details strong{font-size:9px; color:var(--text-dim);}
+.change-details span{font-size:10px; white-space:normal;}
+.controls-cell{white-space:pre-line;}
+
+@media (max-width: 800px){
+  .local-role-wrap span{display:none;}
+  .local-role-wrap select{min-width:110px;}
+  .archive-controls{align-items:stretch; flex-direction:column;}
+  .archive-controls select{max-width:none;}
+  .record-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
 /* Horizon UI design language adapted under the MIT licence.
    See ../HORIZON_UI_LICENSE.txt. */
 *{box-sizing:border-box; margin:0; padding:0;}
@@ -365,6 +423,14 @@ footer{margin-top: 24px; color: var(--text-dim); font-size: 12px; text-align:cen
   width: 100%;
 }
 .form-group textarea{resize: vertical; min-height: 70px; font-family: var(--sans);}
+.field-hint{display:block; margin-top:6px; color:var(--muted); font-size:11px; line-height:1.4;}
+.locked-quarter{
+  appearance:none;
+  -webkit-appearance:none;
+  background-image:none !important;
+  padding-right:12px !important;
+  cursor:default;
+}
 .rating-preview{display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim);}
 .modal-actions{display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;}
 

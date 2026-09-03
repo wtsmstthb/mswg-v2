@@ -394,6 +394,7 @@ Resources:
       Handler: archiveRisk.handler
       Policies:
         - DynamoDBCrudPolicy: { TableName: !Ref RiskTable }
+        - DynamoDBWritePolicy: { TableName: !Ref RiskHistoryTable }
       Events:
         Api:
           Type: HttpApi
