@@ -7,15 +7,6 @@
 }
 
 
-/* History pages use the Horizon topbar defined in prevoting.css.
-   Hide it when printing a submission. */
-@media print {
-  .topbar {
-    display: none !important;
-  }
-}
-
-
 /* =========================================================
    SUMMARY
 ========================================================= */
@@ -115,7 +106,7 @@
 .history-table-wrap {
   width: 100%;
   overflow-x: auto;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 12px;
 }
 
@@ -245,59 +236,46 @@
    MEETING DETAILS GRID
 
    Desired layout:
-   Row 1 → Meeting Type (column 1 only)
-   Row 2 → Meeting Time (col 1) | Meeting Date (col 2)
-   Row 3 → Venue (full width / one column)
+   Row 1 → Meeting Type (full width)
+   Row 2 → Venue (full width)
+   Row 3 → Meeting Time | Meeting Date
 ========================================================= */
 
 .history-meeting-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-areas:
-    "type spacer"
-    "time date"
-    "venue venue";
-  gap: 1px;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 12px;
-  background: var(--line);
-}
-
-
-.history-detail-field {
-  min-height: 76px;
-  padding: 14px 16px;
   background: #ffffff;
 }
 
 
-.history-detail-type {
-  grid-area: type;
-}
-
-
-.history-detail-type-spacer {
-  grid-area: spacer;
+.history-detail-field {
+  min-width: 0;
   min-height: 76px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 0;
+  border-bottom: 1px solid var(--line);
 }
-
 
 .history-detail-time {
-  grid-area: time;
+  border-right: 1px solid var(--line);
 }
 
-
+.history-detail-time,
 .history-detail-date {
-  grid-area: date;
+  border-bottom: 0;
 }
 
 
-.history-detail-venue {
-  grid-area: venue;
-}
-
-
+.history-detail-type,
+.history-detail-venue,
 .history-detail-full {
   grid-column: 1 / -1;
 }
@@ -317,6 +295,7 @@
   font-size: 11px;
   line-height: 1.55;
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 
@@ -354,7 +333,7 @@
 #historyDetail .history-business-heading {
   padding-top: 7px !important;
   padding-bottom: 7px !important;
-  text-align: left !important;
+  text-align: center !important;
   color: var(--text-secondary) !important;
   background: var(--surface-soft);
   font-family: var(--mono) !important;
@@ -422,12 +401,14 @@
 
 
 #historyDetail .history-table th:last-child,
-#historyDetail .history-table td:last-child {
-  border-right: 0;
+#historyDetail .history-table td:last-child,
+#historyDetail .history-table .history-business-heading {
+  border-right: 0 !important;
 }
 
 
-/* Section header spanning all columns must still reach the table edge */
+#historyDetail .history-table th:last-child,
+#historyDetail .history-table td:last-child,
 #historyDetail .history-table .history-business-heading {
   border-right: 0 !important;
 }
@@ -479,8 +460,8 @@
 .history-overall-remarks {
   min-height: 70px;
   padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
   background: var(--bg);
   color: #4d5a7a;
   font-size: 11px;
@@ -504,22 +485,24 @@
 }
 
 
-@media (max-width: 760px) {
+@media screen and (max-width: 760px) {
   .history-meeting-grid {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "type"
-      "time"
-      "date"
-      "venue";
   }
 
-  .history-detail-type-spacer {
-    display: none;
-  }
-
+  .history-detail-type,
+  .history-detail-venue,
   .history-detail-full {
     grid-column: auto;
+  }
+
+  .history-detail-time {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .history-detail-date {
+    border-left: 0;
   }
 
   .history-detail-actions {
@@ -528,68 +511,352 @@
 }
 
 
+.print-only:not(.print-endorsement) {
+  display: none;
+}
+
+
 /* =========================================================
-   PRINT / PDF
+   SIGNATURES (on-screen)
+========================================================= */
+
+.print-endorsement {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 0 0 16px;
+  padding: 18px 20px 16px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.print-sign {
+  color: var(--text-secondary);
+  font: 600 9px var(--mono);
+  letter-spacing: 0.07em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.print-sign-line {
+  height: 52px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+@media screen and (max-width: 640px) {
+  .print-endorsement {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* =========================================================
+   PRINT / PDF  —  A4 portrait
 ========================================================= */
 
 @page {
   size: A4 portrait;
-  margin: 14mm;
+  margin: 12mm 12mm 16mm;
 }
 
 
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+  }
+
+  html,
+  body {
+    width: auto !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+    color: #1b2559 !important;
+    font-size: 10pt;
+  }
+
+  .no-print,
   .sidebar,
   .sidebar-toggle,
   .topbar,
   .page-header,
-  .history-detail-actions {
+  .history-detail-actions,
+  .history-new-btn {
     display: none !important;
   }
 
-  body,
-  .shell,
-  .main,
+  .print-stamp.print-only {
+    display: block !important;
+    margin: 0 0 8pt;
+    color: #707eae;
+    font-family: var(--mono);
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  .print-endorsement.print-only {
+    display: grid !important;
+  }
+
   .app {
+    display: block !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    grid-template-columns: none !important;
+  }
+
+  .main,
+  .content,
+  .shell {
+    display: block !important;
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #ffffff !important;
   }
 
   #historyView {
     display: none !important;
   }
 
-  #historyDetail {
+  #historyDetail,
+  #historyDetail[hidden] {
     display: block !important;
   }
 
+  /* ----- cards / sections ----- */
+
   .card {
+    margin: 0 0 8pt !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
     box-shadow: none !important;
+    overflow: visible !important;
     break-inside: avoid;
+  }
+
+  .form-head {
+    padding: 0 0 5pt !important;
+    border-bottom: 0.6pt solid #cfd6e6 !important;
+    margin-bottom: 6pt;
+  }
+
+  .form-head h2,
+  .history-detail-title {
+    margin: 0 !important;
+    color: #111c44 !important;
+    font-size: 12pt !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+  }
+
+  .history-detail-subtitle {
+    margin: 3pt 0 0 !important;
+    color: #4d5a7a !important;
+    font-size: 8.5pt !important;
+    line-height: 1.4 !important;
+  }
+
+  .form-body {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* ----- meeting grid stays two-column on A4 ----- */
+
+  .history-meeting-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    border: 2px solid #c5cde0 !important;
+    outline: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .history-detail-field {
+    min-height: 0 !important;
+    padding: 6pt 8pt !important;
+    background: #ffffff !important;
+    border: 0 !important;
+    border-bottom: 1px solid #c5cde0 !important;
+  }
+
+  .history-detail-type,
+  .history-detail-venue,
+  .history-detail-full {
+    grid-column: 1 / -1 !important;
+  }
+
+  .history-detail-time {
+    border-right: 1px solid #c5cde0 !important;
+  }
+
+  .history-detail-time,
+  .history-detail-date {
+    border-bottom: 0 !important;
+  }
+
+  .history-detail-label {
+    margin-bottom: 2pt !important;
+    color: #707eae !important;
+    font-size: 6.5pt !important;
+  }
+
+  .history-detail-value {
+    color: #1b2559 !important;
+    font-size: 9pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* ----- resolutions table ----- */
+
+  .print-section-resolutions {
+    break-inside: auto;
   }
 
   .history-table-wrap {
     overflow: visible !important;
+    border: 2px solid #c5cde0 !important;
+    border-radius: 0 !important;
   }
 
-  .history-table {
-    font-size: 8.5pt;
+  #historyDetail .history-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    font-size: 8pt !important;
   }
 
-  .history-table th,
-  .history-table td {
-    padding: 6px !important;
+  #historyDetail .history-table th,
+  #historyDetail .history-table td {
+    padding: 5pt 6pt !important;
+    border: 1px solid #c5cde0 !important;
+    color: #1b2559 !important;
+    vertical-align: top !important;
+  }
+
+  #historyDetail .history-table thead tr:first-child th {
+    border-top: 0 !important;
+  }
+
+  #historyDetail .history-table th:first-child,
+  #historyDetail .history-table td:first-child {
+    border-left: 0 !important;
+  }
+
+  #historyDetail .history-table th:last-child,
+  #historyDetail .history-table td:last-child,
+  #historyDetail .history-table .history-business-heading {
+    border-right: 0 !important;
+  }
+
+  #historyDetail .history-table tbody tr:last-child td {
+    border-bottom: 0 !important;
+  }
+
+  #historyDetail .history-business-heading {
+    background: #f4f7fe !important;
+    color: #707eae !important;
+    font-size: 8pt !important;
+    letter-spacing: 0.08em !important;
+    padding: 5pt 6pt !important;
+  }
+
+  #historyDetail .history-resolution-no,
+  #historyDetail .history-resolution-heading,
+  #historyDetail .history-vote-heading,
+  #historyDetail .history-remarks-heading {
+    background: #f4f7fe !important;
+    color: #707eae !important;
+    font-size: 7pt !important;
+  }
+
+  #historyDetail .history-resolution-no,
+  #historyDetail .history-resolution-number {
+    width: 22mm !important;
+    white-space: normal !important;
+    font-size: 7.5pt !important;
+    text-align: center !important;
+  }
+
+  #historyDetail .history-vote-heading,
+  #historyDetail .history-vote-cell {
+    width: 20mm !important;
+  }
+
+  #historyDetail .history-remarks-heading,
+  #historyDetail .history-remarks-cell {
+    width: 38mm !important;
+    text-align: left !important;
+    font-size: 8pt !important;
   }
 
   thead {
     display: table-header-group;
   }
 
+  tbody {
+    display: table-row-group;
+  }
+
   tr {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .history-vote {
+    border: 0.4pt solid currentColor;
+    padding: 2pt 5pt !important;
+    font-size: 7pt !important;
+  }
+
+  /* ----- remarks ----- */
+
+  .history-overall-remarks {
+    min-height: 48pt;
+    padding: 7pt 8pt !important;
+    border: 2px solid #c5cde0 !important;
+    border-radius: 0 !important;
+    background: #f8f9fd !important;
+    color: #4d5a7a !important;
+    font-size: 9pt !important;
+  }
+
+  /* ----- signature block (print only) ----- */
+
+  .print-endorsement {
+    grid-template-columns: 1fr 1fr;
+    gap: 18mm;
+    margin-top: 18pt;
+    page-break-inside: avoid;
+  }
+
+  .print-sign {
+    color: #707eae;
+    font-family: var(--mono);
+    font-size: 7.5pt;
+    letter-spacing: 0.06em;
+    text-align: center !important;
+    text-transform: uppercase;
+  }
+
+  .print-sign-line {
+    height: 28pt;
+    margin-bottom: 4pt;
+    border-bottom: 0.6pt solid #1b2559;
   }
 }
