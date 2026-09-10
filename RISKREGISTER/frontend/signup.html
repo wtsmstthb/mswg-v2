@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request access - MSWG Platform Portal</title>
+  <link rel="stylesheet" href="shell.css">
+  <style>
+    .auth-links { display:flex; flex-wrap:wrap; gap:12px 18px; margin-top:20px; }
+    .auth-links a { color:var(--brand, #1b2559); font-weight:700; }
+    .auth-note { margin-top:18px; padding:14px 16px; border-radius:12px; background:#f7f9fc; color:#566176; }
+  </style>
+</head>
+<body>
+  <main class="access-message">
+    <div class="profile-page-card">
+      <div class="eyebrow">MSWG Internal Systems</div>
+      <h1>Request an account</h1>
+      <p class="subtitle">MSWG accounts are approved and assigned to the correct department before access is granted.</p>
+      <p style="margin-top:18px;"><button class="btn-primary" id="signUpBtn">Continue to secure registration</button></p>
+      <p class="subtitle" id="signUpMessage" role="status" style="margin-top:14px;color:var(--high);"></p>
+      <div class="auth-note">Already invited? Use the email address provided by MSWG when completing registration.</div>
+      <nav class="auth-links" aria-label="Account help">
+        <a href="login.html">Sign in</a>
+        <a href="forgot-password.html">Forgot password?</a>
+        <a href="access-denied.html">Access denied?</a>
+      </nav>
+    </div>
+  </main>
+  <script src="config.js"></script>
+  <script>
+    document.getElementById("signUpBtn").addEventListener("click", () => {
+      const config = window.APP_CONFIG.cognito;
+      if (!config.hostedUiDomain || !config.clientId || !config.redirectUri) {
+        document.getElementById("signUpMessage").textContent =
+          "Secure registration is not connected in this local demonstration. An administrator must create or invite the account.";
+        return;
+      }
+      const url = new URL("/signup", config.hostedUiDomain);
+      url.searchParams.set("client_id", config.clientId);
+      url.searchParams.set("response_type", "code");
+      url.searchParams.set("scope", "openid email profile");
+      url.searchParams.set("redirect_uri", config.redirectUri);
+      window.location.assign(url.toString());
+    });
+  </script>
+</body>
+</html>
