@@ -40,7 +40,7 @@ function applyAssessmentAccessState() {
   const meta = document.getElementById("recordMeta");
   if (meta) meta.textContent = state.assessmentId ? `Record ${state.assessmentId} · Revision ${state.revision} · Version ${state.recordVersion}` : "New unsaved assessment";
 
-  const editable = !state.assessmentId || Boolean(state.permissions?.can_edit);
+  const editable = Boolean(state.permissions?.can_edit);
   document.querySelectorAll("#formBody input, #formBody select, #formBody textarea").forEach(control => { control.disabled = !editable; });
   document.getElementById("saveBtn").hidden = !editable;
   document.getElementById("draftFooterBtn").hidden = !editable;
@@ -51,7 +51,7 @@ function applyAssessmentAccessState() {
 
   const next = document.getElementById("nextBtn");
   if (state.current === sections.length - 1) {
-    next.textContent = state.permissions?.can_submit || !state.assessmentId ? "Submit for review" : "Preview report";
+    next.textContent = state.permissions?.can_submit ? "Submit for review" : "Preview report";
   }
   const reviewText = document.getElementById("reviewBannerText");
   if (reviewText) {
@@ -75,7 +75,6 @@ async function saveCurrentAssessment({ quiet = false } = {}) {
   });
   const url = new URL(window.location.href);
   url.searchParams.set("id", state.assessmentId);
-  url.searchParams.set("role", window.AGM_CONFIG.localRole);
   history.replaceState({}, "", url);
   render();
   if (!quiet) toast("Draft saved to DynamoDB");
@@ -123,23 +122,13 @@ async function reopenCurrentAssessment(reason) {
 }
 
 async function initializeAssessmentPersistence() {
-  const role = window.AGM_CONFIG.localRole;
-  document.body.classList.toggle("hod-mode", role === "hod");
-  const roleSelect = document.getElementById("roleSelect");
-  if (roleSelect) {
-    roleSelect.value = role;
-    roleSelect.hidden = window.AGM_CONFIG.environment !== "local";
-  }
-  const userCard = document.querySelector(".user-card");
-  if (userCard) userCard.innerHTML = role === "hod"
-    ? "<strong>RITA FOO</strong><span>Corporate Monitoring · HOD reviewer</span>"
-    : "<strong>CORPORATE MONITORING</strong><span>Analyst / Assessor</span>";
-
+  const identity = window.AGM_CONTEXT;
+  window.renderAgmIdentity();
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id");
   if (!id) {
-    state.fields.analyst = role === "hod" ? "" : "Corporate Monitoring Assessor";
-    state.permissions = { can_edit: role !== "hod", can_submit: role !== "hod", can_review: false, can_reopen: false };
+    state.fields.analyst = identity.canAssess ? identity.userName : "";
+    state.permissions = { can_edit: identity.canAssess, can_submit: identity.canAssess, can_review: false, can_reopen: false };
     render();
     return;
   }
@@ -159,11 +148,4 @@ async function initializeAssessmentPersistence() {
     render();
     toast(error.message);
   }
-}
-
-function changeLocalRole(role) {
-  localStorage.setItem("mswg_agm_local_role", role);
-  const url = new URL(window.location.href);
-  url.searchParams.set("role", role);
-  window.location.assign(url);
 }

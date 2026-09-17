@@ -2,6 +2,23 @@
 
 const { HttpError } = require("./http");
 
+const DEPARTMENT_IDS = new Set([
+  "ceo-office", "corp-monitoring", "corp-governance", "corp-resources",
+  "finance-admin", "it-training", "creative-comms", "prof-development"
+]);
+
+function resolveDepartment(claims, groups) {
+  const departments = [...new Set(groups.filter(group => group.startsWith("rr-dept-")).map(group => group.slice(8)))];
+  const claim = claims["custom:department_id"] || claims.department_id;
+  if ((claim && !DEPARTMENT_IDS.has(claim)) || departments.some(id => !DEPARTMENT_IDS.has(id))) {
+    throw new HttpError(403, "Invalid department assignment", "INVALID_DEPARTMENT_CLAIM");
+  }
+  if (departments.length > 1 || (claim && departments.length && departments[0] !== claim)) {
+    throw new HttpError(403, "Conflicting department assignments", "DEPARTMENT_MISMATCH");
+  }
+  return claim || departments[0] || "";
+}
+
 const GROUPS = Object.freeze({
   appUsers: "agm-app-users",
   assessors: "agm-assessors",
@@ -40,7 +57,7 @@ function getIdentity(event) {
   return Object.freeze({
     userId,
     username: claims.name || claims["cognito:username"] || claims.email || userId,
-    departmentId: claims["custom:department_id"] || claims.department_id || "",
+    departmentId: resolveDepartment(claims, groups),
     groups: Object.freeze(groups),
     canAssess,
     canReview

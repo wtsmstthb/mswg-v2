@@ -20,18 +20,14 @@
       <a class="nav-item" href="landingpage.html"><span class="nav-icon">✓</span><span class="nav-text">New assessment</span></a>
       <div class="nav-label">Other platforms</div>
       <a class="nav-item" href="../../RISKREGISTER/frontend/dashboard.html"><span class="nav-icon">◇</span><span class="nav-text">Risk Register</span></a>
-      <button class="nav-item" disabled><span class="nav-icon">◎</span><span class="nav-text">Pre-Voting</span></button>
-      <div class="user-card"><strong>CORPORATE MONITORING</strong><span>Analyst / Assessor</span></div>
+      <a class="nav-item" href="../../PRE-VOTING/frontend/index.html"><span class="nav-icon">◎</span><span class="nav-text">Pre-Voting</span></a>
+      <div class="user-card"><strong>Account</strong><span>Sign-in required</span></div>
     </aside>
 
     <main class="main">
       <div class="topbar">
         <div class="crumb">Portal / AGM / <strong>Assessment records</strong></div>
         <div class="top-actions">
-          <select class="role-select" id="roleSelect" aria-label="Preview role">
-            <option value="analyst">View as Corporate Monitoring</option>
-            <option value="hod">View as HOD reviewer</option>
-          </select>
           <a class="btn primary" id="newAssessmentBtn" href="landingpage.html">New assessment</a>
         </div>
       </div>
@@ -75,7 +71,10 @@
   </aside>
 
   <div class="toast" id="toast"></div>
+  <script src="../../RISKREGISTER/frontend/config.js"></script>
+  <script src="../../shared/auth/session.js"></script>
   <script src="agm-config.js"></script>
+  <script src="agm-auth.js"></script>
   <script src="agm-api-client.js"></script>
   <script src="records.js"></script>
 </body>

@@ -258,16 +258,16 @@
   <header class="topbar">
     <div class="brand"><div class="brand-mark">M</div><div><strong>MSWG Portal</strong><span>Internal Platform Gateway</span></div></div>
     <div class="account">
-      <div class="account-copy"><strong id="topUserName">User</strong><span id="topDepartment">MSWG</span></div>
-      <button class="profile-button" id="profileButton" aria-label="Open account menu" aria-expanded="false">U</button>
-      <div class="account-menu" id="accountMenu"><button id="signOutButton">Sign out</button></div>
+      <div class="account-copy"><strong id="topUserName">Guest</strong><span id="topDepartment">MSWG</span></div>
+      <button class="profile-button" id="profileButton" aria-label="Open account menu" aria-expanded="false">G</button>
+      <div class="account-menu" id="accountMenu"><button id="signOutButton">Sign in</button></div>
     </div>
   </header>
 
   <main>
     <section class="hero">
       <div><div class="eyebrow">MSWG internal systems</div><h1 id="welcomeHeading">Choose your platform</h1><p>Select the platform you need. The options available to you will eventually follow your assigned role and department in the shared user account.</p></div>
-      <div class="signed-in"><span>Signed in as</span><strong id="signedInName">User · MSWG</strong></div>
+      <div class="signed-in"><span id="sessionLabel">Portal access</span><strong id="signedInName">No sign-in required</strong></div>
     </section>
 
     <div class="section-heading"><h2>Available platforms</h2><span>One login · Three connected workspaces</span></div>
@@ -286,13 +286,11 @@
       <article class="platform-card voting">
         <div class="card-accent"></div>
         <div class="card-body">
-          <!-- <div class="card-top"><div class="platform-icon">V</div><span class="status soon">In development</span></div> -->
           <div class="card-top"><div class="platform-icon">V</div><span class="status">Available</span></div>
           <h3>Pre-Voting</h3>
           <p>Prepare and review proposed voting positions before company meetings using a consistent internal workflow.</p>
           <div class="features"><div class="feature">Meeting and resolution preparation</div><div class="feature">Internal review and recommendation</div><div class="feature">Printable voting reference</div></div>
         </div>
-        <!-- <div class="card-footer"><span class="open-button disabled" aria-disabled="true">Coming soon</span></div> -->
         <div class="card-footer"><a class="open-button" href="../../PRE-VOTING/frontend/index.html"><span>Open Pre-Voting</span><span class="arrow">→</span></a></div>
       </article>
 
@@ -308,37 +306,30 @@
       </article>
     </section>
 
-    <div class="portal-note">This is the shared portal prototype. Platform visibility will be connected to Cognito groups when the access rules for Pre-Voting and Conduct of AGM are finalised.</div>
+    <div class="portal-note">Use your assigned company account. Each platform checks access before loading or changing records.</div>
   </main>
 
   <script src="../../RISKREGISTER/frontend/config.js"></script>
+  <script src="../auth/session.js"></script>
   <script>
-    function parseJwtClaims(token) {
-      try {
-        const payload = token.split(".")[1];
-        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-        const json = decodeURIComponent(atob(normalized).split("").map(char => `%${(`00${char.charCodeAt(0).toString(16)}`).slice(-2)}`).join(""));
-        return JSON.parse(json);
-      } catch { return null; }
-    }
-
-    const token = sessionStorage.getItem("mswg_rr_id_token") || localStorage.getItem("mswg_rr_id_token");
-    const localClaims = window.APP_CONFIG?.environment === "local" ? window.APP_CONFIG.localMockClaims : null;
-    const claims = parseJwtClaims(token || "") || localClaims;
-    if (!claims) window.location.replace("../../RISKREGISTER/frontend/login.html");
+    // The portal is public; individual platforms still protect their records.
+    let claims = null;
+    try { claims = window.MSWG_SESSION?.readClaims() || null; } catch {}
 
     const departments = {
       "ceo-office": "CEO office", "corp-monitoring": "Corporate monitoring", "corp-governance": "Corporate governance",
       "corp-resources": "Corporate resources", "finance-admin": "Finance and admin", "it-training": "IT and training",
       "creative-comms": "Creative communications", "prof-development": "Professional development"
     };
-    const userName = claims?.name || claims?.["cognito:username"] || claims?.email || "User";
+    const userName = claims?.name || claims?.["cognito:username"] || claims?.email || "Guest";
     const department = departments[claims?.["custom:department_id"]] || "MSWG";
     const initial = userName.charAt(0).toUpperCase();
     document.getElementById("topUserName").textContent = userName;
     document.getElementById("topDepartment").textContent = department;
-    document.getElementById("signedInName").textContent = `${userName} · ${department}`;
-    document.getElementById("welcomeHeading").textContent = `Welcome, ${userName.split(" ")[0]}`;
+    document.getElementById("sessionLabel").textContent = claims ? "Signed in as" : "Portal access";
+    document.getElementById("signedInName").textContent = claims ? `${userName} · ${department}` : "No sign-in required";
+    document.getElementById("welcomeHeading").textContent = claims ? `Welcome, ${userName.split(" ")[0]}` : "Choose your platform";
+    document.getElementById("signOutButton").textContent = claims ? "Sign out" : "Sign in";
     document.getElementById("profileButton").textContent = initial;
 
     const profileButton = document.getElementById("profileButton");
@@ -350,6 +341,10 @@
     });
     document.addEventListener("click", () => { accountMenu.classList.remove("open"); profileButton.setAttribute("aria-expanded", "false"); });
     document.getElementById("signOutButton").addEventListener("click", () => {
+      if (!claims) {
+        window.location.assign("../../RISKREGISTER/frontend/login.html");
+        return;
+      }
       sessionStorage.removeItem("mswg_rr_id_token");
       sessionStorage.removeItem("mswg_rr_access_token");
       localStorage.removeItem("mswg_rr_id_token");

@@ -1,6 +1,8 @@
 # MSWG Internal Platforms
 
-This repository contains two separate applications with a shared portal, AWS stack, and local DynamoDB data.
+This repository contains Risk Register, Conduct of AGM and Pre-Voting behind a shared portal. The current AWS template covers RR and AGM; Pre-Voting deployment remains separate work.
+
+Authentication cleanup: real Cognito sign-in is now required, including on local web servers. Install the verifier with `npm ci --prefix shared/auth`, then configure the pool/client and frontend sign-in settings. The previous role selectors and fabricated history fallback have been removed. See [the cleanup and configuration report](shared/docs/hardcoded-cleanup.md) before following older local/demo instructions.
 
 ```text
 RR/
@@ -9,17 +11,20 @@ RR/
 │   ├── backend/
 │   ├── tests/
 │   ├── tools/
-│   ├── docs/
-│   └── legacy/
+│   └── docs/
 ├── AGM/
 │   ├── frontend/
 │   ├── backend/
 │   ├── tests/
 │   ├── tools/
-│   ├── docs/
-│   └── archive/
+│   └── docs/
+├── PRE-VOTING/
+│   ├── frontend/
+│   ├── backend/
+│   └── testing/
 ├── shared/
 │   ├── portal/
+│   ├── auth/
 │   ├── infrastructure/
 │   ├── docs/
 │   ├── licenses/

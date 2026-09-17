@@ -3,6 +3,8 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
+const { verifyRequest } = require("../../shared/auth/verify-request");
+const { isPublicFile } = require("../../shared/auth/public-files");
 const { applyLocalEnvironment, createLocalClient, ensureTables } = require("./dynamodb-local");
 
 applyLocalEnvironment();
@@ -16,34 +18,6 @@ const { handler: archiveRisk } = require("../backend/archiveRisk");
 
 const PORT = Number(process.env.RR_LOCAL_PORT || 3200);
 const REPOSITORY_ROOT = path.resolve(__dirname, "..", "..");
-
-function localClaims(role) {
-  if (role === "hod") {
-    return {
-      sub: "rr-local-hod",
-      name: "Padma Devi",
-      "custom:department_id": "it-training",
-      "custom:application_role": "department-head",
-      "cognito:groups": ["rr-app-users", "rr-department-heads", "rr-dept-it-training"]
-    };
-  }
-  if (role === "cm-hod") {
-    return {
-      sub: "rr-local-cm-hod",
-      name: "Rita Foo",
-      "custom:department_id": "corp-monitoring",
-      "custom:application_role": "department-head",
-      "cognito:groups": ["rr-app-users", "rr-department-heads", "rr-dept-corp-monitoring"]
-    };
-  }
-  return {
-    sub: "rr-local-viewer",
-    name: "Lini Hazlinda",
-    "custom:department_id": "corp-resources",
-    "custom:application_role": "department-head-full-visibility",
-    "cognito:groups": ["rr-app-users", "rr-department-heads", "rr-viewers-all", "rr-dept-corp-resources"]
-  };
-}
 
 async function readBody(request) {
   const chunks = [];
@@ -79,10 +53,15 @@ function contentType(file) {
 }
 
 async function serveApi(request, response, route, url) {
-  const requestedRole = request.headers["x-local-role"];
-  const role = ["viewer", "hod", "cm-hod"].includes(requestedRole) ? requestedRole : "viewer";
+  let claims;
+  try { claims = await verifyRequest(request.headers.authorization); }
+  catch (error) {
+    response.writeHead(error.status || 401, { "content-type": "application/json" });
+    response.end(JSON.stringify({ error: error.message, code: "SIGN_IN_REQUIRED" }));
+    return;
+  }
   const result = await route.handler({
-    requestContext: { authorizer: { jwt: { claims: localClaims(role) } } },
+    requestContext: { authorizer: { jwt: { claims } } },
     pathParameters: Object.fromEntries(
       Object.entries(route.pathParameters || {}).map(([key, value]) => [key, decodeURIComponent(value)])
     ),
@@ -96,7 +75,7 @@ async function serveApi(request, response, route, url) {
 function serveFile(response, pathname) {
   const requested = pathname === "/" ? "/RISKREGISTER/frontend/dashboard.html" : pathname;
   const file = path.resolve(REPOSITORY_ROOT, `.${decodeURIComponent(requested)}`);
-  if (!file.startsWith(`${REPOSITORY_ROOT}${path.sep}`)) {
+  if (!file.startsWith(`${REPOSITORY_ROOT}${path.sep}`) || !isPublicFile(path.relative(REPOSITORY_ROOT, file))) {
     response.writeHead(403); response.end("Forbidden"); return;
   }
   fs.readFile(file, (error, data) => {
@@ -130,7 +109,7 @@ async function main() {
 
   server.listen(PORT, "127.0.0.1", () => {
     console.log(`Risk Register local application: http://localhost:${PORT}/RISKREGISTER/frontend/dashboard.html`);
-    console.log("Use the page role selector to switch among Full visibility, IT HOD, and Corporate Monitoring HOD.");
+    console.log("Record access requires a verified Cognito access token. Configure COGNITO_USER_POOL_ID and COGNITO_CLIENT_ID.");
   });
 }
 

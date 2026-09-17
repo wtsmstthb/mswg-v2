@@ -25,19 +25,14 @@
       <a class="nav-item active" href="landingpage.html"><span class="nav-icon">✓</span><span class="nav-text">AGM assessment</span></a>
       <div class="nav-label">Other platforms</div>
       <a class="nav-item" href="../../RISKREGISTER/frontend/dashboard.html"><span class="nav-icon">◇</span><span class="nav-text">Risk Register</span></a>
-      <a class="nav-item" href="../pre-voting/index.html"><span class="nav-icon">◎</span><span class="nav-text">Pre-Voting</span></a>
-      <!--<button class="nav-item" disabled title="This platform is not available yet"><span class="nav-icon">◎</span><span class="nav-text">Pre-Voting</span></button>-->
-      <div class="user-card"><strong>ALI ABU AHKAW</strong><span>Corporate Monitoring · Analyst</span></div>
+      <a class="nav-item" href="../../PRE-VOTING/frontend/index.html"><span class="nav-icon">◎</span><span class="nav-text">Pre-Voting</span></a>
+      <div class="user-card"><strong>Account</strong><span>Sign-in required</span></div>
     </aside>
 
     <main class="main">
       <div class="topbar">
         <div class="crumb">Portal / AGM / <strong id="crumbLabel">Assessment</strong></div>
         <div class="top-actions">
-          <select class="role-select" id="roleSelect" aria-label="Preview role">
-            <option value="analyst">View as Corporate Monitoring</option>
-            <option value="hod">View as HOD reviewer</option>
-          </select>
           <button class="btn" id="previewBtn">PDF preview</button>
           <button class="btn primary cm-action" id="saveBtn">Save draft</button>
           <button class="btn success hod-action" id="approveBtn">Approve assessment</button>
@@ -118,7 +113,10 @@
     </div>
   </div>
 
+  <script src="../../RISKREGISTER/frontend/config.js"></script>
+  <script src="../../shared/auth/session.js"></script>
   <script src="agm-config.js"></script>
+  <script src="agm-auth.js"></script>
   <script src="agm-api-client.js"></script>
   <script src="assessment-data.js"></script>
   <script src="assessment-ui.js"></script>

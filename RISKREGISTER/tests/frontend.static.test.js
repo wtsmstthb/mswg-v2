@@ -18,9 +18,14 @@ function createStorage(initial = {}) {
 }
 
 function loadRoleContext({ claims, currentPage = "dashboard.html" } = {}) {
-  const localStorage = createStorage(
-    claims ? { mswg_rr_mock_claims: JSON.stringify(claims) } : {}
-  );
+  const token = kind => `header.${Buffer.from(JSON.stringify({
+    ...claims, token_use: kind, exp: Math.floor(Date.now() / 1000) + 300,
+    iss: "https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_TestPool",
+    ...(kind === "id" ? { aud: "test-client" } : { client_id: "test-client" })
+  })).toString("base64url")}.test-signature`;
+  const localStorage = createStorage(claims ? {
+    mswg_rr_id_token: token("id"), mswg_rr_access_token: token("access")
+  } : {});
   const redirects = [];
   const sandbox = {
     console,
@@ -33,6 +38,8 @@ function loadRoleContext({ claims, currentPage = "dashboard.html" } = {}) {
   sandbox.CURRENT_PAGE = currentPage;
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(appDirectory, "config.js"), "utf8"), sandbox);
+  sandbox.APP_CONFIG = { ...sandbox.APP_CONFIG, cognito: { userPoolId: "ap-southeast-1_TestPool", clientId: "test-client" } };
+  vm.runInContext(fs.readFileSync(path.join(appDirectory, "../../shared/auth/session.js"), "utf8"), sandbox);
   vm.runInContext(fs.readFileSync(path.join(appDirectory, "role-config.js"), "utf8"), sandbox);
   return { context: sandbox.APP_CONTEXT, redirects };
 }
@@ -59,20 +66,21 @@ test("every consolidated HTML page references existing local assets and has vali
       );
     }
 
-    if (!["access-denied.html", "login.html", "callback.html"].includes(file)) {
+    if (!["access-denied.html", "login.html", "callback.html", "signup.html", "forgot-password.html"].includes(file)) {
       assert.ok(source.includes('src="config.js"'), `${file} must load environment configuration`);
       assert.ok(source.includes('src="role-config.js"'), `${file} must load permission configuration`);
     }
   }
 });
 
-test("the local full-visibility mock receives organization and archive permissions", () => {
+test("a visitor without a session receives no permissions even in local mode", () => {
   const { context, redirects } = loadRoleContext();
-  assert.equal(context.departmentId, "corp-resources");
-  assert.equal(context.canViewAll, true);
-  assert.equal(context.canArchive, true);
+  assert.equal(context.departmentId, "");
+  assert.equal(context.canViewAll, false);
+  assert.equal(context.canArchive, false);
+  assert.equal(context.isAuthenticated, false);
   assert.equal(context.canRestore, false);
-  assert.deepEqual(redirects, []);
+  assert.deepEqual(redirects, ["login.html"]);
 });
 
 test("a department head sees department features but is redirected away from privileged pages", () => {

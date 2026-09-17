@@ -49,7 +49,7 @@ Current frontend areas:
 - shared/portal — shared platform-selection prototype
 - RISKREGISTER/frontend — current consolidated RR frontend
 - AGM/frontend — current AGM assessment prototype
-- RISKREGISTER/frontend/legacy — historical HOD and SUPER copies retained for reference
+- Historical HOD and SUPER copies were retired after the consolidated frontend replaced them; recover historical versions from Git if needed.
 
 Pre-Voting does not yet have an implemented frontend in the current workspace.
 
@@ -217,7 +217,7 @@ The active AGM prototype is split for maintainability:
 - assessment-ui.js — rendering, navigation, and scoring
 - assessment-report.js — report/print preparation
 - landingpage.js — shell, sidebar, and general interactions
-- land2.html — preserved pre-Horizon comparison version
+- The pre-Horizon comparison page was retired after active navigation and dependencies were checked; historical versions remain in Git.
 
 The section navigator for A–J is collapsible. The fillable Meeting Details panel itself remains the input area. The Previous button is not shown on the first page.
 

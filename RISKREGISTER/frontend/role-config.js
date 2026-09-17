@@ -14,31 +14,6 @@
     "prof-development": "Professional development"
   };
 
-  function parseJwtClaims(token){
-    try {
-      const payload = token.split(".")[1];
-      const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-      const json = decodeURIComponent(atob(normalized).split("").map(char =>
-        `%${(`00${char.charCodeAt(0).toString(16)}`).slice(-2)}`
-      ).join(""));
-      return JSON.parse(json);
-    } catch {
-      return null;
-    }
-  }
-
-  function readLocalMockClaims(){
-    if (window.APP_CONFIG?.environment !== "local") return null;
-    try {
-      const stored = localStorage.getItem("mswg_rr_mock_claims");
-      if (stored) return JSON.parse(stored);
-      const role = localStorage.getItem("mswg_rr_local_role") || "viewer";
-      return window.APP_CONFIG.localRoles?.[role] || window.APP_CONFIG.localMockClaims;
-    } catch {
-      return window.APP_CONFIG.localMockClaims;
-    }
-  }
-
   function normalizeGroups(raw){
     if (Array.isArray(raw)) return raw;
     if (typeof raw !== "string") return [];
@@ -49,10 +24,9 @@
     return raw.replace(/^\[/, "").replace(/\]$/, "").split(/[\s,]+/).filter(Boolean);
   }
 
-  const token = sessionStorage.getItem("mswg_rr_id_token") || localStorage.getItem("mswg_rr_id_token");
-  const claims = parseJwtClaims(token || "") || readLocalMockClaims();
+  const claims = window.MSWG_SESSION.readClaims();
   const groups = normalizeGroups(claims?.["cognito:groups"]);
-  const departmentId = claims?.["custom:department_id"] || "";
+  const departmentId = claims?.["custom:department_id"] || groups.find(group => group.startsWith("rr-dept-"))?.slice(8) || "";
   const canViewAll = groups.includes("rr-viewers-all");
   const hasAppAccess = groups.some(group =>
     ["rr-app-users", "rr-department-heads", "rr-viewers-all"].includes(group)
@@ -85,7 +59,7 @@
 
   const protectedForViewers = new Set(["org-overview.html", "archived.html"]);
   if ((!context.isAuthenticated || !context.hasAppAccess) && window.CURRENT_PAGE !== "access-denied.html") {
-    window.location.replace("access-denied.html");
+    window.location.replace(context.isAuthenticated ? "access-denied.html" : "login.html");
   } else if (protectedForViewers.has(window.CURRENT_PAGE) && !context.canViewAll) {
     window.location.replace("dashboard.html");
   } else if (window.CURRENT_PAGE === "register.html" && !context.canCreate) {

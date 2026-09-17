@@ -3,7 +3,7 @@ document.getElementById("previousBtn").addEventListener("click",()=>{captureFiel
 document.getElementById("nextBtn").addEventListener("click", async ()=>{
   captureFields();
   if(state.current<sections.length-1){state.current++;render();window.scrollTo(0,0);return;}
-  if(state.permissions?.can_submit || !state.assessmentId) await submitCurrentAssessment().catch(()=>{});
+  if(state.permissions?.can_submit) await submitCurrentAssessment().catch(()=>{});
   else showReport();
 });
 document.getElementById("saveBtn").addEventListener("click",()=>saveCurrentAssessment().catch(error=>toast(error.message)));
@@ -11,7 +11,6 @@ document.getElementById("draftFooterBtn").addEventListener("click",()=>saveCurre
 document.getElementById("previewBtn").addEventListener("click",showReport);
 document.getElementById("backBtn").addEventListener("click",()=>{document.getElementById("reportView").style.display="none";document.getElementById("appView").style.display="grid"});
 document.getElementById("printBtn").addEventListener("click",()=>window.print());
-document.getElementById("roleSelect").addEventListener("change",e=>changeLocalRole(e.target.value));
 let workflowAction = null;
 function openWorkflowModal(action) {
   workflowAction = action;

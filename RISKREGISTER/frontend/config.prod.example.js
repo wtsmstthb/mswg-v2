@@ -10,6 +10,5 @@ window.APP_CONFIG = Object.freeze({
     hostedUiDomain: "__COGNITO_HOSTED_UI_DOMAIN__",
     redirectUri: "__COGNITO_REDIRECT_URI__",
     logoutUri: "__COGNITO_LOGOUT_URI__"
-  }),
-  localMockClaims: null
+  })
 });

@@ -5,6 +5,7 @@ from extractor import extract_bursa_notice
 from typing import List, Optional, Literal
 from sqlalchemy.orm import Session
 from database import Base, engine, get_db
+from auth import require_identity
 
 from models import (
     PreVotingSubmission,
@@ -13,7 +14,8 @@ from models import (
 
 
 app = FastAPI(
-    title="MSWG Pre-Voting API"
+    title="MSWG Pre-Voting API",
+    dependencies=[Depends(require_identity)],
 )
 
 Base.metadata.create_all(

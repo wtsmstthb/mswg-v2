@@ -2,76 +2,13 @@
    PRE-VOTING HISTORY
 ========================================================= */
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = window.PREVOTING_CONFIG.apiBaseUrl;
 
 const historyView = document.getElementById("historyView");
 const historyDetail = document.getElementById("historyDetail");
 const historyTableBody = document.getElementById("historyTableBody");
 
 let historyRecords = [];
-
-
-/* Demo fallback when the FastAPI backend is not running */
-const MOCK_SUBMISSIONS = [
-  {
-    id: "demo-1",
-    company_name: "Example Holdings Berhad",
-    meeting_description:
-      "Notice of 48th Annual General Meeting of Example Holdings Berhad",
-    meeting_type: "48th Annual General Meeting",
-    meeting_date: "15 May 2026",
-    meeting_time: "10:00 a.m.",
-    meeting_venue:
-      "Ballroom 1, Level 3\nExample Convention Centre\nKuala Lumpur",
-    overall_remarks:
-      "Support resolutions aligned with minority shareholder interests.",
-    created_at: "2026-04-02T09:15:00+08:00",
-    votes: [
-      {
-        number: 1,
-        description:
-          "To receive the Audited Financial Statements for the financial year ended 31 December 2025 together with the Reports of the Directors and Auditors thereon.",
-        vote: "for",
-        remarks: ""
-      },
-      {
-        number: 2,
-        description:
-          "To approve the payment of Directors' fees amounting to RM450,000 for the financial year ending 31 December 2026.",
-        vote: "against",
-        remarks: "Fees appear elevated relative to peer companies of similar size."
-      },
-      {
-        number: 3,
-        description:
-          "To re-elect Datuk A. Rahman who retires by rotation in accordance with the Constitution of the Company.",
-        vote: "abstain",
-        remarks: "Insufficient disclosure on board evaluation outcomes."
-      }
-    ]
-  },
-  {
-    id: "demo-2",
-    company_name: "Northern Palm Industries Berhad",
-    meeting_description:
-      "Notice of Extraordinary General Meeting of Northern Palm Industries Berhad",
-    meeting_type: "Extraordinary General Meeting",
-    meeting_date: "28 Apr 2026",
-    meeting_time: "2:30 p.m.",
-    meeting_venue: "Virtual meeting via TIIH Online",
-    overall_remarks: "",
-    created_at: "2026-03-18T14:40:00+08:00",
-    votes: [
-      {
-        number: 1,
-        description:
-          "Proposed acquisition of plantation assets for a cash consideration of RM120 million.",
-        vote: "for",
-        remarks: ""
-      }
-    ]
-  }
-];
 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -87,7 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadHistory() {
   try {
-    const response = await fetch(`${API_BASE}/api/pre-voting/history`);
+    const response = await window.preVotingFetch(`${API_BASE}/api/pre-voting/history`);
 
     if (!response.ok) {
       throw new Error("Unable to load pre-voting history.");
@@ -98,10 +35,11 @@ async function loadHistory() {
     updateSummary(submissions);
     renderHistory(submissions);
   } catch (error) {
-    console.warn("History API unavailable — using demo records.", error);
-    historyRecords = MOCK_SUBMISSIONS;
-    updateSummary(MOCK_SUBMISSIONS);
-    renderHistory(MOCK_SUBMISSIONS);
+    console.error("History API unavailable.", error);
+    historyRecords = [];
+    const total = document.getElementById("totalSubmissions");
+    if (total) total.textContent = "—";
+    historyTableBody.innerHTML = '<tr><td colspan="5" class="history-empty">Unable to load saved submissions. Check your sign-in and connection, then reload.</td></tr>';
   }
 }
 
@@ -175,7 +113,7 @@ function attachViewEvents() {
 
 async function openSubmission(id) {
   try {
-    const response = await fetch(
+    const response = await window.preVotingFetch(
       `${API_BASE}/api/pre-voting/history/${id}`
     );
 
@@ -186,15 +124,6 @@ async function openSubmission(id) {
     const submission = await response.json();
     showDetail(submission);
   } catch (error) {
-    const local = historyRecords.find(
-      (item) => String(item.id) === String(id)
-    );
-
-    if (local) {
-      showDetail(local);
-      return;
-    }
-
     console.error("Submission error:", error);
     alert("Unable to open this pre-voting record.");
   }

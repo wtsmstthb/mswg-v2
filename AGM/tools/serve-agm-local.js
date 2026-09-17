@@ -3,6 +3,8 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
+const { verifyRequest } = require("../../shared/auth/verify-request");
+const { isPublicFile } = require("../../shared/auth/public-files");
 const { applyAgmLocalEnvironment, createAgmLocalClient, ensureAgmTables } = require("./agm-dynamodb-local");
 
 applyAgmLocalEnvironment();
@@ -18,23 +20,6 @@ const { handler: getHistory } = require("../backend/getAssessmentHistory");
 
 const PORT = Number(process.env.AGM_LOCAL_PORT || 3100);
 const REPOSITORY_ROOT = path.resolve(__dirname, "..", "..");
-
-function localClaims(role) {
-  if (role === "hod") {
-    return {
-      sub: "agm-local-hod",
-      name: "Rita Foo",
-      "custom:department_id": "corp-monitoring",
-      "cognito:groups": ["agm-app-users", "agm-reviewers"]
-    };
-  }
-  return {
-    sub: "agm-local-assessor",
-    name: "Corporate Monitoring Assessor",
-    "custom:department_id": "corp-monitoring",
-    "cognito:groups": ["agm-app-users", "agm-assessors"]
-  };
-}
 
 async function readBody(request) {
   const chunks = [];
@@ -62,9 +47,15 @@ function contentType(file) {
 }
 
 async function serveApi(request, response, route, url) {
-  const role = request.headers["x-local-role"] === "hod" ? "hod" : "analyst";
+  let claims;
+  try { claims = await verifyRequest(request.headers.authorization); }
+  catch (error) {
+    response.writeHead(error.status || 401, { "content-type": "application/json" });
+    response.end(JSON.stringify({ error: error.message, code: "SIGN_IN_REQUIRED" }));
+    return;
+  }
   const result = await route.handler({
-    requestContext: { authorizer: { jwt: { claims: localClaims(role) } } },
+    requestContext: { authorizer: { jwt: { claims } } },
     pathParameters: route.assessmentId ? { assessmentId: decodeURIComponent(route.assessmentId) } : {},
     queryStringParameters: Object.fromEntries(url.searchParams),
     body: await readBody(request)
@@ -76,7 +67,7 @@ async function serveApi(request, response, route, url) {
 function serveFile(request, response, pathname) {
   const requested = pathname === "/" ? "/AGM/frontend/records.html" : pathname;
   const file = path.resolve(REPOSITORY_ROOT, `.${decodeURIComponent(requested)}`);
-  if (!file.startsWith(`${REPOSITORY_ROOT}${path.sep}`)) {
+  if (!file.startsWith(`${REPOSITORY_ROOT}${path.sep}`) || !isPublicFile(path.relative(REPOSITORY_ROOT, file))) {
     response.writeHead(403); response.end("Forbidden"); return;
   }
   fs.readFile(file, (error, data) => {
@@ -103,7 +94,7 @@ async function main() {
   });
   server.listen(PORT, "127.0.0.1", () => {
     console.log(`AGM local application: http://localhost:${PORT}/AGM/frontend/records.html`);
-    console.log("Use the page role selector to switch between Corporate Monitoring and HOD review.");
+    console.log("Record access requires a verified Cognito access token. Configure COGNITO_USER_POOL_ID and COGNITO_CLIENT_ID.");
   });
 }
 

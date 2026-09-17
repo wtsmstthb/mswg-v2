@@ -24,7 +24,6 @@ function toast(message) {
 function recordUrl(record, approved = false) {
   const url = new URL("landingpage.html", window.location.href);
   url.searchParams.set("id", record.assessment_id);
-  url.searchParams.set("role", window.AGM_CONFIG.localRole);
   if (approved) url.searchParams.set("approved", "1");
   return url.pathname + url.search;
 }
@@ -87,14 +86,8 @@ async function showHistory(id, company) {
 }
 
 function setRoleShell() {
-  const role = window.AGM_CONFIG.localRole;
-  document.body.classList.toggle("hod-mode", role === "hod");
-  document.getElementById("roleSelect").value = role;
-  document.getElementById("roleSelect").hidden = window.AGM_CONFIG.environment !== "local";
-  document.getElementById("newAssessmentBtn").hidden = role === "hod";
-  document.querySelector(".user-card").innerHTML = role === "hod"
-    ? "<strong>RITA FOO</strong><span>Corporate Monitoring · HOD reviewer</span>"
-    : "<strong>CORPORATE MONITORING</strong><span>Analyst / Assessor</span>";
+  window.renderAgmIdentity();
+  document.getElementById("newAssessmentBtn").hidden = !window.AGM_CONTEXT.canAssess;
 }
 
 const sidebar = document.querySelector(".sidebar");
@@ -111,12 +104,6 @@ sidebarToggle.addEventListener("click", () => {
   localStorage.setItem("mswg_agm_sidebar_collapsed", String(collapsed));
 });
 
-document.getElementById("roleSelect").addEventListener("change", event => {
-  localStorage.setItem("mswg_agm_local_role", event.target.value);
-  const url = new URL(window.location.href);
-  url.searchParams.set("role", event.target.value);
-  window.location.assign(url);
-});
 document.getElementById("refreshBtn").addEventListener("click", loadRecords);
 document.getElementById("searchInput").addEventListener("input", renderRecords);
 document.getElementById("statusFilter").addEventListener("change", renderRecords);

@@ -5,11 +5,10 @@
 - `tests` — authorization, configuration, static frontend, and persistence-wiring tests
 - `tools` — DynamoDB Local setup, real lifecycle test, and local browser/API server
 - `docs` — RR decisions, access matrix, and acceptance records
-- `legacy` — retained historical prototypes and manual database checks
 
 ## Run the complete application locally
 
-You do not need PostgreSQL, MongoDB, or an AWS account. The existing Docker container supplies DynamoDB Local.
+The existing Docker container supplies DynamoDB Local. Browser/API access now requires real Cognito sign-in; there is no local role impersonation. Follow [the authentication setup notes](../shared/docs/hardcoded-cleanup.md) first. Database-only automated tests still use isolated fixtures.
 
 1. Start the database:
 

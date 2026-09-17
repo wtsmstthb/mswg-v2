@@ -1,4 +1,4 @@
-/* Assessment structure and prototype data. */
+/* Fixed assessment questions, scoring rules and empty record state. */
 const sections = [
   { id: "details", letter: "—", short: "Meeting details", title: "Meeting details", description: "Enter the company and meeting information.", questions: [] },
   { id: "a", letter: "A", short: "Timeliness", title: "Timeliness of AGM and notice", description: "Assess whether the meeting and notice were conducted within the expected timeframe.", questions: [
@@ -63,7 +63,7 @@ const state = {
   recordVersion: null,
   revision: 1,
   status: "DRAFT",
-  permissions: { can_edit: true, can_submit: true, can_review: false, can_reopen: false },
+  permissions: { can_edit: false, can_submit: false, can_review: false, can_reopen: false },
   answers: {},
   comments: {},
   fields: {

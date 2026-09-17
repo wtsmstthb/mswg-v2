@@ -1,0 +1,6 @@
+{
+  "name": "mswg-local-auth",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": { "aws-jwt-verify": "5.2.1" }
+}

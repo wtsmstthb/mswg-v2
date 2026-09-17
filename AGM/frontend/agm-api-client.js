@@ -1,18 +1,12 @@
 /* Authenticated API client shared by the AGM assessment and record-list pages. */
 (() => {
-  function token() {
-    return sessionStorage.getItem("mswg_rr_access_token") ||
-      localStorage.getItem("mswg_rr_access_token") ||
-      sessionStorage.getItem("mswg_rr_id_token") ||
-      localStorage.getItem("mswg_rr_id_token");
-  }
-
   async function request(path, options = {}) {
     const config = window.AGM_CONFIG;
     if (!config?.apiBaseUrl) throw new Error("AGM API is not configured");
     const headers = { "content-type": "application/json", ...(options.headers || {}) };
-    if (config.environment === "local") headers["x-local-role"] = config.localRole;
-    else if (token()) headers.authorization = `Bearer ${token()}`;
+    const token = window.MSWG_SESSION.getAccessToken();
+    if (!token) throw new Error("Please sign in with your company account.");
+    headers.authorization = `Bearer ${token}`;
     const response = await fetch(`${config.apiBaseUrl}${path}`, {
       method: options.method || "GET",
       headers,

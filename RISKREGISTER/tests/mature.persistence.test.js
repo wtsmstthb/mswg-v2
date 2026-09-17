@@ -60,7 +60,8 @@ test("the local server exposes the same six routes as the deployed HTTP API", ()
     assert.ok(server.includes(route), `missing local route evidence: ${route}`);
   }
   assert.match(server, /ensureTables/);
-  assert.match(server, /requestContext: \{ authorizer: \{ jwt: \{ claims:/);
+  assert.match(server, /claims = await verifyRequest\(request.headers.authorization\)/);
+  assert.match(server, /requestContext: \{ authorizer: \{ jwt: \{ claims \}/);
 });
 
 test("the complete form schema and version protection are enforced by the backend", () => {

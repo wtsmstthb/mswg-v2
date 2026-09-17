@@ -65,7 +65,7 @@ function renderNavItem(item, currentPage) {
 
 function getTopbarContext() {
   const context = window.APP_CONTEXT || {};
-  const userName = context.userName || "MSWG Analyst";
+  const userName = context.userName || "User";
 
   let positionLabel = "MSWG User";
 

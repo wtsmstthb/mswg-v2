@@ -635,8 +635,8 @@ async function retrieveAnnouncement() {
 
   try {
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/api/pre-voting/extract",
+    const response = await window.preVotingFetch(
+      `${window.PREVOTING_CONFIG.apiBaseUrl}/api/pre-voting/extract`,
       {
         method: "POST",
 
@@ -1088,8 +1088,8 @@ async function submitVotes() {
 
   try {
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/api/pre-voting/submit",
+    const response = await window.preVotingFetch(
+      `${window.PREVOTING_CONFIG.apiBaseUrl}/api/pre-voting/submit`,
       {
         method: "POST",
 

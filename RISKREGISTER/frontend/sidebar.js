@@ -10,7 +10,7 @@ const EXEC_NAV_ITEMS = [
   { href: "archived.html", label: "Archived", icon: "□", permission: "canViewAll" }
 ];
 const OTHER_PLATFORM_ITEMS = [
-  { href: "../pre-voting/", label: "Pre-Voting", icon: "◎", available: false },
+  { href: "../../PRE-VOTING/frontend/index.html", label: "Pre-Voting", icon: "◎", available: true },
   { href: "../../AGM/frontend/landingpage.html", label: "AGM", icon: "✓", available: true }
 ];
 
@@ -109,15 +109,6 @@ function renderTopbar(){
       <div class="topbar-subtitle">${pageLabel} · ${accessLabel}</div>
     </div>
     <div class="profile-wrap">
-      ${window.APP_CONFIG?.environment === "local" ? `
-        <label class="local-role-wrap" title="Switch the local test identity">
-          <span>Test as</span>
-          <select id="localRoleSelect">
-            <option value="viewer">Full visibility</option>
-            <option value="hod">IT HOD</option>
-            <option value="cm-hod">CM HOD</option>
-          </select>
-        </label>` : ""}
       <button class="profile-btn" id="profileBtn" aria-label="Open profile menu">${initial}</button>
       <div class="profile-dropdown" id="profileDropdown">
         <a href="profile.html">View profile</a>
@@ -142,15 +133,6 @@ function renderTopbar(){
   }
 
   const dropdown = document.getElementById("profileDropdown");
-  const localRoleSelect = document.getElementById("localRoleSelect");
-  if (localRoleSelect) {
-    localRoleSelect.value = localStorage.getItem("mswg_rr_local_role") || "viewer";
-    localRoleSelect.addEventListener("change", () => {
-      localStorage.setItem("mswg_rr_local_role", localRoleSelect.value);
-      localStorage.removeItem("mswg_rr_mock_claims");
-      window.location.reload();
-    });
-  }
   document.getElementById("profileBtn").addEventListener("click", event => {
     event.stopPropagation();
     dropdown.classList.toggle("open");

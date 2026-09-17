@@ -6,16 +6,9 @@
     if (!baseUrl) throw new Error("The API base URL is not configured for this environment.");
 
     const headers = { "content-type": "application/json", ...(options.headers || {}) };
-    if (window.APP_CONFIG.environment === "local") {
-      headers["x-local-role"] = localStorage.getItem("mswg_rr_local_role") || "viewer";
-    } else {
-      const token = sessionStorage.getItem("mswg_rr_access_token") ||
-        localStorage.getItem("mswg_rr_access_token") ||
-        sessionStorage.getItem("mswg_rr_id_token") ||
-        localStorage.getItem("mswg_rr_id_token");
-      if (!token) throw new Error("Your session has expired. Please sign in again.");
-      headers.authorization = `Bearer ${token}`;
-    }
+    const token = window.MSWG_SESSION.getAccessToken();
+    if (!token) throw new Error("Please sign in with your company account.");
+    headers.authorization = `Bearer ${token}`;
 
     let response;
     try {
